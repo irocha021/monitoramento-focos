@@ -1,0 +1,2087 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <title>Monitoramento Ambiental - Fogo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #111827;
+            --muted: #667085;
+            --subtle: #8a93a3;
+            --line: #e1e5eb;
+            --soft-line: #edf0f4;
+            --panel: #ffffff;
+            --sidebar: #ffffff;
+            --aiba-blue: #1767a6;
+            --aiba-blue-dark: #0c4d82;
+            --aiba-green: #087742;
+            --aiba-green-dark: #065a32;
+            --aiba-soft-blue: #eaf4fb;
+            --aiba-soft-green: #eaf6ef;
+            --aiba-field: #f7fbf7;
+            --fire: #ef2e2b;
+            --fire-soft: #fde7e7;
+            --fire-pale: #fff4f2;
+            --brand: var(--aiba-blue-dark);
+            --forest: #1b6b4a;
+            --map-line: #080808;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--ink);
+            background: #f5f6f8;
+        }
+
+        button,
+        select {
+            font: inherit;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: 248px minmax(0, 1fr) 402px;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            height: 100%;
+            overflow: hidden;
+            background: var(--sidebar);
+            border-right: 1px solid var(--line);
+        }
+
+        .nav-scroll {
+            overflow: auto;
+            padding: 14px 10px 24px;
+            border-top: 3px solid var(--aiba-blue);
+        }
+
+        .nav-item,
+        .nav-parent,
+        .nav-child {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            min-height: 40px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #1f2937;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .nav-item,
+        .nav-parent {
+            padding: 9px 10px;
+            font-weight: 700;
+            font-size: 0.97rem;
+        }
+
+        .nav-child {
+            margin: 7px 0 0 34px;
+            width: calc(100% - 34px);
+            padding: 9px 12px;
+            color: #374151;
+            font-weight: 700;
+            font-size: 0.92rem;
+        }
+
+        .nav-child.active,
+        .nav-parent.active {
+            color: var(--aiba-green-dark);
+            background: linear-gradient(90deg, var(--aiba-soft-green), var(--aiba-soft-blue));
+        }
+
+        .nav-child.active {
+            color: var(--aiba-blue-dark);
+            background: #f3faf6;
+        }
+
+        .nav-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            flex: 0 0 22px;
+            color: currentColor;
+        }
+
+        .nav-icon svg,
+        .tool-button svg,
+        .small-icon {
+            width: 19px;
+            height: 19px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .chevron {
+            margin-left: auto;
+            color: currentColor;
+        }
+
+        .nav-parent .chevron {
+            font-size: 0;
+        }
+
+        .nav-parent .chevron::before {
+            content: "^";
+            font-size: 0.78rem;
+        }
+
+        .nav-divider {
+            height: 8px;
+        }
+
+        .nav-child[data-map-reset] + .nav-divider {
+            display: none;
+        }
+
+        .nav-muted {
+            color: #8b95a5;
+        }
+
+        .nav-scroll > .nav-item:not([data-home]) {
+            display: none;
+        }
+
+        .map-stage {
+            position: relative;
+            min-width: 0;
+            height: 100vh;
+            background: #d9e1df;
+        }
+
+        #mapa {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-top-tools {
+            position: absolute;
+            z-index: 650;
+            top: 14px;
+            right: 12px;
+            display: grid;
+            gap: 9px;
+        }
+
+        .tool-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #374151;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(16, 24, 40, 0.14);
+        }
+
+        .car-layer-status {
+            position: absolute;
+            z-index: 650;
+            top: 14px;
+            left: 58px;
+            max-width: min(360px, calc(100vw - 130px));
+            padding: 9px 12px;
+            border: 1px solid rgba(0, 95, 59, 0.24);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.96);
+            color: #005f3b;
+            font-size: 0.78rem;
+            font-weight: 800;
+            box-shadow: 0 3px 10px rgba(16, 24, 40, 0.14);
+        }
+
+        .legend {
+            position: absolute;
+            z-index: 640;
+            right: 12px;
+            bottom: 18px;
+            width: min(258px, calc(100vw - 28px));
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 12px 28px rgba(16, 24, 40, 0.2);
+        }
+
+        .legend-head,
+        .legend-body {
+            padding: 14px 16px;
+        }
+
+        .legend-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--soft-line);
+            font-weight: 800;
+        }
+
+        .legend-body {
+            color: #374151;
+            font-size: 0.78rem;
+        }
+
+        .legend-title {
+            margin-bottom: 10px;
+            font-weight: 800;
+            color: #1f2937;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 8px;
+        }
+
+        .risk-swatch {
+            width: 18px;
+            height: 12px;
+            border-radius: 3px;
+            border: 1px solid rgba(17, 24, 39, 0.18);
+        }
+
+        .legend-note {
+            margin: 8px 0 0 25px;
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+
+        .fire-dot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: #ff3151;
+            color: #ffd949;
+            font-size: 13px;
+            line-height: 1;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95), 0 0 0 5px rgba(239, 46, 43, 0.16);
+        }
+
+        .wind-marker {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid rgba(12, 77, 130, 0.28);
+            background: rgba(237, 247, 252, 0.84);
+            box-shadow: 0 4px 12px rgba(12, 77, 130, 0.22);
+        }
+
+        .wind-marker::before {
+            content: "";
+            position: absolute;
+            left: 16px;
+            top: 7px;
+            width: 2px;
+            height: 20px;
+            border-radius: 999px;
+            background: var(--aiba-blue-dark);
+        }
+
+        .wind-marker::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            top: 6px;
+            width: 0;
+            height: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-bottom: 10px solid var(--aiba-blue-dark);
+        }
+
+        .municipio-line {
+            width: 24px;
+            height: 0;
+            border-top: 3px solid var(--map-line);
+        }
+
+        .unidade-conservacao-line {
+            width: 24px;
+            height: 12px;
+            border: 2px solid #1767a6;
+            border-radius: 3px;
+            background: rgba(23, 103, 166, 0.18);
+        }
+
+        .leaflet-tooltip.uc-label {
+            border: 1px solid rgba(12, 77, 130, 0.35);
+            border-radius: 4px;
+            background: rgba(12, 77, 130, 0.92);
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(12, 77, 130, 0.2);
+            font-size: 0.68rem;
+            font-weight: 900;
+            letter-spacing: 0;
+            padding: 4px 6px;
+        }
+
+        .leaflet-tooltip.uc-label::before {
+            display: none;
+        }
+
+        .details {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(180deg, #f8fbfd 0, var(--panel) 92px);
+            border-left: 1px solid var(--line);
+        }
+
+        .details-fire-bar {
+            height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 0 18px;
+            border-bottom: 3px solid var(--aiba-green);
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--aiba-blue-dark), var(--aiba-blue) 52%, var(--aiba-green));
+            box-shadow: 0 8px 20px rgba(12, 77, 130, 0.16);
+            font-size: 0.78rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .brand-logo-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 6px;
+            background: #ffffff;
+            box-shadow: 0 5px 14px rgba(7, 21, 39, 0.18);
+            overflow: hidden;
+        }
+
+        .brand-logo {
+            display: block;
+            width: 31px;
+            height: 31px;
+            object-fit: contain;
+        }
+
+        .brand-name {
+            white-space: nowrap;
+        }
+
+        .details-scroll {
+            overflow: auto;
+            padding: 18px 16px 28px;
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--aiba-blue-dark);
+            font-size: 1.28rem;
+            letter-spacing: 0;
+            line-height: 1.25;
+        }
+
+        .status-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 7px;
+            color: var(--muted);
+            font-size: 0.84rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--fire);
+            box-shadow: 0 0 0 4px rgba(239, 46, 43, 0.12);
+        }
+
+        .time-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 30px;
+            margin-top: 14px;
+            padding: 0 12px;
+            border: 1px solid #c9ddeb;
+            border-radius: 7px;
+            color: var(--aiba-blue-dark);
+            background: var(--aiba-soft-blue);
+            font-size: 0.78rem;
+        }
+
+        .control-box {
+            margin-top: 24px;
+            padding: 18px 20px;
+            border: 1px solid #cfe2d8;
+            border-radius: 8px;
+            background: linear-gradient(180deg, #ffffff, var(--aiba-field));
+            box-shadow: 0 8px 22px rgba(8, 119, 66, 0.08);
+        }
+
+        .field-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin: 0 0 11px;
+            color: #6b8c9f;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .segmented {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 6px;
+            border-radius: 8px;
+            background: #eef5f2;
+        }
+
+        .segment {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 40px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            background: transparent;
+            color: #5b6472;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .segment.active {
+            border-color: #b8d9c5;
+            color: var(--aiba-green-dark);
+            background: #ffffff;
+            box-shadow: 0 3px 10px rgba(8, 119, 66, 0.1);
+        }
+
+        .select-row {
+            margin-bottom: 10px;
+        }
+
+        .select-row:last-child {
+            margin-bottom: 0;
+        }
+
+        select {
+            width: 100%;
+            min-height: 46px;
+            padding: 0 12px;
+            border: 1px solid #cddce7;
+            border-radius: 7px;
+            background: #ffffff;
+            color: var(--aiba-blue-dark);
+            font-weight: 700;
+            outline: none;
+        }
+
+        .hint {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 0.76rem;
+            line-height: 1.35;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 26px;
+            color: var(--aiba-blue-dark);
+            font-size: 0.86rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .utc-badge {
+            padding: 5px 8px;
+            border: 1px solid #c9ddeb;
+            border-radius: 5px;
+            color: var(--aiba-blue-dark);
+            background: var(--aiba-soft-blue);
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+
+        .summary-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            margin-top: 16px;
+            min-height: 64px;
+            padding: 12px 16px;
+            border: 1px solid #b8d9c5;
+            border-radius: 8px;
+            color: var(--aiba-green-dark);
+            background: linear-gradient(135deg, #f3faf6, #edf7fc);
+        }
+
+        .summary-card span {
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .summary-card strong {
+            font-size: 1.4rem;
+            color: var(--fire);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .metric {
+            padding: 12px;
+            border: 1px solid #d2e2dd;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .metric strong {
+            display: block;
+            color: var(--aiba-blue-dark);
+            font-size: 1.14rem;
+        }
+
+        .metric span {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.74rem;
+            line-height: 1.25;
+        }
+
+        .wind-card {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+            padding: 14px;
+            border: 1px solid #bdd7e8;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #edf7fc, #f4faf6);
+        }
+
+        .wind-card[hidden] {
+            display: none;
+        }
+
+        .wind-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .wind-metric {
+            padding: 10px;
+            border: 1px solid #d4e6ef;
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.78);
+        }
+
+        .wind-metric strong {
+            display: block;
+            color: var(--aiba-blue-dark);
+            font-size: 1.08rem;
+        }
+
+        .wind-metric span {
+            display: block;
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 0.72rem;
+        }
+
+        .wind-source {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+
+        .wind-source a {
+            color: var(--aiba-blue-dark);
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .focus-list {
+            display: grid;
+            gap: 17px;
+            margin: 24px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .focus-item {
+            padding: 0 18px 0 0;
+            border-bottom: 1px solid var(--soft-line);
+        }
+
+        .focus-item:last-child {
+            border-bottom: 0;
+        }
+
+        .focus-meta {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+        }
+
+        .focus-label {
+            display: block;
+            color: #9aa3b2;
+            font-size: 0.67rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .focus-value {
+            display: block;
+            margin-top: 4px;
+            color: #071527;
+            font-size: 0.9rem;
+            font-weight: 900;
+        }
+
+        .focus-temp {
+            color: var(--fire);
+            text-align: right;
+        }
+
+        .focus-place {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 10px 0 16px;
+            color: #5b6472;
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+
+        .small-red-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--fire);
+        }
+
+        .empty {
+            margin-top: 22px;
+            padding: 14px;
+            border: 1px dashed var(--line);
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.35;
+        }
+
+        .leaflet-control-layers {
+            margin-right: 58px !important;
+            border: 1px solid var(--line) !important;
+            border-radius: 6px !important;
+            box-shadow: 0 3px 10px rgba(16, 24, 40, 0.14) !important;
+        }
+
+        .leaflet-control-zoom {
+            border: 0 !important;
+            box-shadow: 0 3px 10px rgba(16, 24, 40, 0.14) !important;
+        }
+
+        .leaflet-control-zoom a {
+            border-bottom-color: var(--line) !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 14px;
+            min-width: 210px;
+        }
+
+        .popup-title {
+            margin-bottom: 8px;
+            color: #071527;
+            font-weight: 900;
+        }
+
+        .popup-row {
+            display: grid;
+            grid-template-columns: 82px minmax(0, 1fr);
+            gap: 8px;
+            margin-top: 5px;
+            font-size: 0.84rem;
+        }
+
+        .popup-row span:first-child {
+            color: var(--muted);
+        }
+
+        @media (max-width: 1100px) {
+            body {
+                overflow: auto;
+            }
+
+            .shell {
+                grid-template-columns: 280px minmax(0, 1fr);
+                grid-template-rows: minmax(560px, 62vh) auto;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .sidebar {
+                grid-row: 1 / 3;
+                height: auto;
+            }
+
+            .map-stage {
+                height: 62vh;
+            }
+
+            .details {
+                grid-column: 2;
+                height: auto;
+                min-height: 420px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .shell {
+                display: block;
+            }
+
+            .sidebar,
+            .details {
+                height: auto;
+            }
+
+            .map-stage {
+                height: 62vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar" aria-label="Navegacao principal">
+            <nav class="nav-scroll">
+                <button class="nav-item" type="button" data-home>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" /></svg>
+                    </span>
+                    Home
+                </button>
+
+                <div class="nav-divider"></div>
+
+                <button class="nav-parent active" type="button">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A4.5 4.5 0 0 0 13 19a6 6 0 0 0 6-6c0-4-3-7-6-10 .2 2-1 3.5-2.5 4.8C8.8 9.3 7 11 7 14a6 6 0 0 0 6 6" /></svg>
+                    </span>
+                    Fogo
+                    <span class="chevron">^</span>
+                </button>
+
+                <button class="nav-child active" type="button" data-view="tempo-real">Tempo Real</button>
+                <button class="nav-child" type="button" data-view="panorama">Panorama do Fogo</button>
+                <button class="nav-child" type="button" data-view="ventos">Ventos e Fogo</button>
+                <button class="nav-child" type="button" data-view="risco">Áreas de Risco</button>
+                <button class="nav-child" type="button" data-map-reset>Mapa</button>
+            </nav>
+        </aside>
+
+        <main class="map-stage">
+            <div id="mapa"></div>
+            <div class="car-layer-status" id="statusCamadaCar" role="status" hidden></div>
+            <div class="map-top-tools" aria-label="Ferramentas do mapa">
+                <button class="tool-button" id="botaoCamadas" type="button" title="Alternar mapa base">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5" /><path d="m3 17 9 5 9-5" /></svg>
+                </button>
+                <button class="tool-button" id="botaoFogo" type="button" title="Centralizar focos">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A4.5 4.5 0 0 0 13 19a6 6 0 0 0 6-6c0-4-3-7-6-10 .2 2-1 3.5-2.5 4.8C8.8 9.3 7 11 7 14a6 6 0 0 0 6 6" /></svg>
+                </button>
+                <button class="tool-button" id="botaoImprimir" type="button" title="Imprimir">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v8H6z" /></svg>
+                </button>
+            </div>
+            <div class="legend" aria-label="Legenda">
+                <div class="legend-head">
+                    <span>Legenda</span>
+                    <span>v</span>
+                </div>
+                <div class="legend-body">
+                    <div class="legend-title">Monitoramento Ativo</div>
+                    <div class="legend-row"><span class="fire-dot">!</span><span id="legendaFocos">Focos de Incendio (0)</span></div>
+                    <div class="legend-note" id="legendaPeriodo">Dados consolidados</div>
+                    <div id="legendaRiscoClasses" hidden></div>
+                    <div class="legend-row"><span class="municipio-line"></span><span>Limite municipal</span></div>
+                    <div class="legend-row"><span class="unidade-conservacao-line"></span><span>Unidades de conservacao (APA)</span></div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="details" aria-label="Painel de monitoramento">
+            <div class="details-fire-bar">
+                <span class="brand-mark">
+                    <span class="brand-logo-wrap"><img class="brand-logo" src="logo-aiba.png" alt="AIBA" /></span>
+                    <span class="brand-name">AIBA</span>
+                </span>
+                <span>Programa de Fogo</span>
+            </div>
+            <div class="details-scroll">
+                <h1 id="tituloPainel">Monitoramento tempo real</h1>
+                <div class="status-line"><span class="live-dot"></span><span id="statusPainel">Focos ativos detectados</span></div>
+                <div class="time-pill">
+                    <svg class="small-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    <span>Horarios exibidos em UTC-3</span>
+                </div>
+
+                <section class="control-box">
+                    <div class="field-label">
+                        <svg class="small-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 22h8M12 18v4" /></svg>
+                        Modo de exibicao
+                    </div>
+                    <div class="segmented">
+                        <button class="segment active" type="button" data-display="geral">&#10003; Geral</button>
+                        <button class="segment" type="button" data-display="satelite">
+                            <svg class="small-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>
+                            Por Satelite
+                        </button>
+                    </div>
+
+                    <div class="select-row" id="linhaJanelaTemporal">
+                        <div class="field-label">
+                            <svg class="small-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                            Janela temporal
+                        </div>
+                        <select id="janelaTemporal">
+                            <option value="hoje">Todas as horas (Hoje)</option>
+                            <option value="1h">Ultima 1 hora</option>
+                            <option value="6h">Ultimas 6 horas</option>
+                            <option value="24h">Ultimas 24 horas</option>
+                            <option value="periodo">Periodo completo carregado</option>
+                        </select>
+                        <p class="hint" id="hintJanela">Janela temporal referente ao horario UTC-3</p>
+                    </div>
+
+                    <div class="select-row" id="linhaSatelite" hidden>
+                        <div class="field-label">Satelite</div>
+                        <select id="filtroSatelite">
+                            <option value="">Todos os satelites</option>
+                        </select>
+                    </div>
+
+                    <div class="select-row" id="linhaRiscoTipo" hidden>
+                        <div class="field-label">Camada de preservacao</div>
+                        <select id="filtroRiscoTipo">
+                            <option value="zona_risco">Zona de risco</option>
+                            <option value="app">Areas de APP (CAR)</option>
+                            <option value="reserva">Reserva Legal (CAR)</option>
+                            <option value="uc">Unidades de conservacao (APA)</option>
+                        </select>
+                    </div>
+
+                    <div class="select-row" id="linhaMunicipio">
+                        <div class="field-label">Municipio</div>
+                        <select id="filtroMunicipio">
+                            <option value="">Todos os municipios</option>
+                        </select>
+                    </div>
+                </section>
+
+                <div class="section-title">
+                    <span id="tituloLista">Lista de focos</span>
+                    <span class="utc-badge">UTC-3</span>
+                </div>
+
+                <div class="summary-card">
+                    <span id="rotuloTotal">Focos no periodo</span>
+                    <strong id="totalFocos">0</strong>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric">
+                        <strong id="municipiosAfetados">0</strong>
+                        <span id="rotuloMunicipiosAfetados">Municipios com ocorrencia</span>
+                    </div>
+                    <div class="metric">
+                        <strong id="totalMunicipios">0</strong>
+                        <span>Municipios monitorados</span>
+                    </div>
+                    <div class="metric">
+                        <strong id="satelitesAtivos">0</strong>
+                        <span id="rotuloSatelitesAtivos">Satelites no filtro</span>
+                    </div>
+                    <div class="metric">
+                        <strong id="ultimoHorario">--</strong>
+                        <span id="rotuloUltimoHorario">Registro mais recente</span>
+                    </div>
+                </div>
+
+                <div class="wind-card" id="painelVento" hidden>
+                    <div class="field-label">Vento atual e inclinacao provavel</div>
+                    <div class="wind-grid">
+                        <div class="wind-metric">
+                            <strong id="ventoMedio">--</strong>
+                            <span>Velocidade media</span>
+                        </div>
+                        <div class="wind-metric">
+                            <strong id="ventoDirecao">--</strong>
+                            <span>Direcao predominante</span>
+                        </div>
+                    </div>
+                    <div class="wind-source">
+                        <span id="ventoStatus">Aguardando dados de vento</span>
+                        <a href="https://www.windy.com/?-12.248,-43.409,6" target="_blank" rel="noopener">Windy</a>
+                    </div>
+                </div>
+
+                <ul class="focus-list" id="listaOcorrencias">
+                    <li class="empty">Nenhum foco carregado.</li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
+    <script>
+        const ARQUIVOS_DADOS = {
+            "tempo-real": "focos_oeste_ba.json",
+            panorama: "panorama_fogo_oeste_ba.json"
+        };
+        const ARQUIVO_LIMITES = "limites_municipios_oeste.json";
+        const ARQUIVO_UNIDADES_CONSERVACAO = "unidades_conservacao_oeste.geojson";
+        const INTERVALO_ATUALIZACAO_MS = 60000;
+        const PONTOS_VENTO = [
+            { nome: "Barreiras", lat: -12.1528, lon: -44.99 },
+            { nome: "Luis Eduardo Magalhaes", lat: -12.0956, lon: -45.7866 },
+            { nome: "Sao Desiderio", lat: -12.3633, lon: -44.9736 },
+            { nome: "Riachao das Neves", lat: -11.7461, lon: -44.91 },
+            { nome: "Formosa do Rio Preto", lat: -11.0483, lon: -45.1931 },
+            { nome: "Correntina", lat: -13.3475, lon: -44.6367 },
+            { nome: "Santa Maria da Vitoria", lat: -13.3972, lon: -44.1986 },
+            { nome: "Bom Jesus da Lapa", lat: -13.255, lon: -43.4186 },
+            { nome: "Barra", lat: -11.0894, lon: -43.1417 },
+            { nome: "Cocos", lat: -14.1814, lon: -44.535 },
+            { nome: "Jaborandi", lat: -13.6231, lon: -44.4597 }
+        ];
+
+        const mapaRua = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap"
+        });
+
+        const mapaSatelite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+            maxZoom: 19,
+            attribution: "&copy; Esri"
+        });
+
+        const mapa = L.map("mapa", {
+            center: [-12.55, -44.95],
+            zoom: 7,
+            layers: [mapaSatelite],
+            zoomControl: true,
+            preferCanvas: true
+        });
+
+        const controleCamadas = L.control.layers(
+            {
+                "Satelite": mapaSatelite,
+                "Mapa de ruas": mapaRua
+            },
+            {},
+            { collapsed: true, position: "topright" }
+        ).addTo(mapa);
+
+        const camadaAppCar = L.layerGroup();
+        const camadaReservaLegalCar = L.layerGroup();
+
+        controleCamadas.addOverlay(camadaAppCar, "Areas de APP (CAR)");
+        controleCamadas.addOverlay(camadaReservaLegalCar, "Reserva Legal (CAR)");
+
+        const camadasCar = {
+            app: {
+                grupo: camadaAppCar,
+                arquivo: "imovel_rural_app_oeste.geojson",
+                titulo: "Area de Preservacao Permanente",
+                cor: "#00ff66",
+                carregada: false,
+                carregando: false
+            },
+            reserva: {
+                grupo: camadaReservaLegalCar,
+                arquivo: "imovel_rural_reserva_legal_oeste.geojson",
+                titulo: "Reserva Legal",
+                cor: "#f2b705",
+                carregada: false,
+                carregando: false
+            }
+        };
+
+        const camadasAreasRisco = {
+            app: {
+                arquivo: "imovel_rural_app_oeste.geojson",
+                titulo: "Areas de APP (CAR)",
+                fonte: "Cadastro Ambiental Rural",
+                tipo: "car",
+                corRisco: "#ef2e2b"
+            },
+            reserva: {
+                arquivo: "imovel_rural_reserva_legal_oeste.geojson",
+                titulo: "Reserva Legal (CAR)",
+                fonte: "Cadastro Ambiental Rural",
+                tipo: "car",
+                corRisco: "#f2b705"
+            },
+            uc: {
+                arquivo: ARQUIVO_UNIDADES_CONSERVACAO,
+                titulo: "Unidades de conservacao (APA)",
+                fonte: "Unidades de Conservacao",
+                tipo: "uc",
+                corRisco: "#ef2e2b"
+            }
+        };
+        const cacheAreasRisco = {};
+
+        const camadaUnidadesConservacao = L.geoJSON(null, {
+            style: {
+                color: "#1767a6",
+                weight: 2.2,
+                opacity: 0.95,
+                fillColor: "#1767a6",
+                fillOpacity: 0.12,
+                dashArray: "8 5"
+            },
+            onEachFeature: (feature, layer) => {
+                const nome = obterNomeUnidadeConservacao(feature.properties);
+                layer.bindTooltip(nome, {
+                    permanent: true,
+                    direction: "center",
+                    className: "uc-label"
+                });
+                layer.bindPopup(`
+                    <div class="popup-title">${escaparHtml(nome)}</div>
+                    <div class="popup-row"><span>Camada</span><b>Unidade de conservacao</b></div>
+                    <div class="popup-row"><span>Categoria</span><b>APA</b></div>
+                `);
+            }
+        }).addTo(mapa);
+
+        const camadaMunicipios = L.geoJSON(null, {
+            style: {
+                color: "#080808",
+                weight: 2.2,
+                opacity: 0.96,
+                fillColor: "#ffffff",
+                fillOpacity: 0.015
+            },
+            onEachFeature: (feature, layer) => {
+                layer.bindTooltip(obterNomeMunicipio(feature.properties), { sticky: true });
+            }
+        }).addTo(mapa);
+
+        const camadaFocos = L.geoJSON(null, {
+            pointToLayer: (feature, latlng) => {
+                if (!estado.usarIcones) {
+                    return L.circleMarker(latlng, {
+                        radius: 5,
+                        fillColor: "#ef2e2b",
+                        color: "#ffffff",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.86
+                    });
+                }
+
+                return L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: "fire-marker",
+                        html: '<span class="fire-dot">!</span>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                });
+            },
+            onEachFeature: (feature, layer) => {
+                const p = feature.properties || {};
+                layer.bindPopup(`
+                    <div class="popup-title">${escaparHtml(p.municipio || "Municipio nao informado")}</div>
+                    <div class="popup-row"><span>Deteccao</span><b>${escaparHtml(formatarDataHora(p.data_hora))}</b></div>
+                    <div class="popup-row"><span>Satelite</span><b>${escaparHtml(p.satelite || "N/A")}</b></div>
+                    <div class="popup-row"><span>Bioma</span><b>${escaparHtml(p.bioma || "N/A")}</b></div>
+                    <div class="popup-row"><span>FRP</span><b>${escaparHtml(formatarNumero(p.frp))}</b></div>
+                `);
+            }
+        }).addTo(mapa);
+
+        const camadaVento = L.layerGroup().addTo(mapa);
+        const camadaAreasRiscoOperacional = L.layerGroup().addTo(mapa);
+
+        const estado = {
+            view: "tempo-real",
+            display: "geral",
+            limites: null,
+            dados: {
+                "tempo-real": null,
+                panorama: null
+            },
+            unidadesConservacao: null,
+            vento: {
+                pontos: [],
+                carregando: false,
+                erro: null
+            },
+            municipio: "",
+            satelite: "",
+            riscoTipo: "zona_risco",
+            janela: "hoje",
+            usarIcones: true,
+            jaAjustouMapa: false
+        };
+
+        const refs = {
+            tituloPainel: document.getElementById("tituloPainel"),
+            statusPainel: document.getElementById("statusPainel"),
+            linhaJanelaTemporal: document.getElementById("linhaJanelaTemporal"),
+            janelaTemporal: document.getElementById("janelaTemporal"),
+            filtroSatelite: document.getElementById("filtroSatelite"),
+            filtroMunicipio: document.getElementById("filtroMunicipio"),
+            linhaMunicipio: document.getElementById("linhaMunicipio"),
+            linhaSatelite: document.getElementById("linhaSatelite"),
+            linhaRiscoTipo: document.getElementById("linhaRiscoTipo"),
+            filtroRiscoTipo: document.getElementById("filtroRiscoTipo"),
+            hintJanela: document.getElementById("hintJanela"),
+            totalFocos: document.getElementById("totalFocos"),
+            municipiosAfetados: document.getElementById("municipiosAfetados"),
+            totalMunicipios: document.getElementById("totalMunicipios"),
+            satelitesAtivos: document.getElementById("satelitesAtivos"),
+            ultimoHorario: document.getElementById("ultimoHorario"),
+            tituloLista: document.getElementById("tituloLista"),
+            rotuloTotal: document.getElementById("rotuloTotal"),
+            rotuloMunicipiosAfetados: document.getElementById("rotuloMunicipiosAfetados"),
+            rotuloSatelitesAtivos: document.getElementById("rotuloSatelitesAtivos"),
+            rotuloUltimoHorario: document.getElementById("rotuloUltimoHorario"),
+            listaOcorrencias: document.getElementById("listaOcorrencias"),
+            legendaFocos: document.getElementById("legendaFocos"),
+            legendaPeriodo: document.getElementById("legendaPeriodo"),
+            legendaRiscoClasses: document.getElementById("legendaRiscoClasses"),
+            painelVento: document.getElementById("painelVento"),
+            ventoMedio: document.getElementById("ventoMedio"),
+            ventoDirecao: document.getElementById("ventoDirecao"),
+            ventoStatus: document.getElementById("ventoStatus")
+        };
+
+        document.querySelectorAll("[data-view]").forEach((button) => {
+            button.addEventListener("click", () => alterarView(button.dataset.view));
+        });
+
+        document.querySelector("[data-home]").addEventListener("click", () => alterarView("tempo-real"));
+        document.querySelector("[data-map-reset]").addEventListener("click", () => ajustarMapa(true));
+
+        document.querySelectorAll("[data-display]").forEach((button) => {
+            button.addEventListener("click", () => {
+                estado.display = button.dataset.display;
+                refs.linhaSatelite.hidden = estado.display !== "satelite";
+                document.querySelectorAll("[data-display]").forEach((item) => {
+                    item.classList.toggle("active", item === button);
+                });
+                atualizarTela();
+            });
+        });
+
+        refs.janelaTemporal.addEventListener("change", () => {
+            estado.janela = refs.janelaTemporal.value;
+            atualizarTela();
+        });
+
+        refs.filtroSatelite.addEventListener("change", () => {
+            estado.satelite = refs.filtroSatelite.value;
+            atualizarTela();
+        });
+
+        refs.filtroMunicipio.addEventListener("change", () => {
+            estado.municipio = refs.filtroMunicipio.value;
+            atualizarTela();
+        });
+
+        refs.filtroRiscoTipo.addEventListener("change", () => {
+            estado.riscoTipo = refs.filtroRiscoTipo.value;
+            atualizarTela();
+        });
+
+        document.getElementById("botaoCamadas").addEventListener("click", () => {
+            if (mapa.hasLayer(mapaSatelite)) {
+                mapa.removeLayer(mapaSatelite);
+                mapaRua.addTo(mapa);
+            } else {
+                mapa.removeLayer(mapaRua);
+                mapaSatelite.addTo(mapa);
+            }
+        });
+        document.getElementById("botaoFogo").addEventListener("click", () => ajustarMapa(true));
+        document.getElementById("botaoImprimir").addEventListener("click", () => window.print());
+        mapa.on("overlayadd", (evento) => {
+            const entrada = Object.entries(camadasCar).find(([, config]) => config.grupo === evento.layer);
+            if (entrada) {
+                carregarCamadaCar(entrada[0]);
+            }
+        });
+
+        carregarTudo();
+        window.setInterval(carregarTudo, INTERVALO_ATUALIZACAO_MS);
+
+        async function carregarTudo() {
+            const limites = await carregarGeoJson(ARQUIVO_LIMITES);
+            if (limites.ok) {
+                estado.limites = limites.dados;
+                camadaMunicipios.clearLayers().addData(estado.limites);
+            }
+
+            const unidadesConservacao = await carregarGeoJson(ARQUIVO_UNIDADES_CONSERVACAO);
+            if (unidadesConservacao.ok) {
+                estado.unidadesConservacao = unidadesConservacao.dados;
+                camadaUnidadesConservacao.clearLayers().addData(unidadesConservacao.dados);
+            }
+
+            const entradas = await Promise.all(
+                Object.entries(ARQUIVOS_DADOS).map(async ([view, arquivo]) => {
+                    const resposta = await carregarGeoJson(arquivo);
+                    return [view, resposta];
+                })
+            );
+
+            for (const [view, resposta] of entradas) {
+                if (resposta.ok) {
+                    estado.dados[view] = resposta.dados;
+                }
+            }
+
+            if (!estado.dados.panorama && estado.dados["tempo-real"]) {
+                estado.dados.panorama = estado.dados["tempo-real"];
+            }
+
+            preencherFiltros();
+            atualizarTela();
+        }
+
+        async function carregarGeoJson(arquivo) {
+            try {
+                const resposta = await fetch(`${arquivo}?v=${Date.now()}`, { cache: "no-store" });
+                if (!resposta.ok) {
+                    throw new Error(`${arquivo} nao encontrado.`);
+                }
+                return { ok: true, dados: await resposta.json() };
+            } catch (erro) {
+                console.warn(erro.message);
+                return { ok: false, erro: erro.message };
+            }
+        }
+
+        async function carregarCamadaCar(chave) {
+            const config = camadasCar[chave];
+            if (!config || config.carregada || config.carregando) {
+                return;
+            }
+
+            const status = document.getElementById("statusCamadaCar");
+            config.carregando = true;
+            status.textContent = `Carregando ${config.titulo}...`;
+            status.hidden = false;
+
+            try {
+                const resposta = await fetch(config.arquivo, { cache: "force-cache" });
+                if (!resposta.ok) {
+                    throw new Error(`Nao foi possivel carregar ${config.arquivo}.`);
+                }
+
+                const dados = await resposta.json();
+                await new Promise((resolver) => requestAnimationFrame(resolver));
+
+                const camadaVetorial = L.vectorGrid.slicer(dados, {
+                    rendererFactory: L.canvas.tile,
+                    interactive: true,
+                    maxZoom: 19,
+                    vectorTileLayerStyles: {
+                        sliced: {
+                            color: config.cor,
+                            weight: 1,
+                            opacity: 0.9,
+                            fill: true,
+                            fillColor: config.cor,
+                            fillOpacity: chave === "app" ? 0.28 : 0.22
+                        }
+                    }
+                });
+
+                camadaVetorial.on("click", (evento) => {
+                    const p = evento.layer?.properties || evento.propagatedFrom?.properties || {};
+                    L.popup()
+                        .setLatLng(evento.latlng)
+                        .setContent(`
+                            <div class="popup-title">${escaparHtml(config.titulo)}</div>
+                            <div class="popup-row"><span>Tipo</span><b>${escaparHtml(p.tipo || "Nao informado")}</b></div>
+                            <div class="popup-row"><span>Area</span><b>${escaparHtml(formatarAreaCar(p.area_decla))}</b></div>
+                            <div class="popup-row"><span>Conservacao</span><b>${escaparHtml(p.est_conser || "Nao informada")}</b></div>
+                            ${p.status ? `<div class="popup-row"><span>Status</span><b>${escaparHtml(p.status)}</b></div>` : ""}
+                        `)
+                        .openOn(mapa);
+                });
+
+                config.grupo.addLayer(camadaVetorial);
+                config.carregada = true;
+                status.textContent = `${config.titulo} carregada (${formatarInteiro(dados.metadata?.feicoes || dados.features?.length || 0)} areas)`;
+                window.setTimeout(() => {
+                    status.hidden = true;
+                }, 3000);
+            } catch (erro) {
+                console.error(erro);
+                status.textContent = `Falha ao carregar ${config.titulo}.`;
+            } finally {
+                config.carregando = false;
+            }
+        }
+
+        function obterNomeUnidadeConservacao(propriedades = {}) {
+            return propriedades.name || propriedades.nome || propriedades.Name || "Unidade de conservacao";
+        }
+
+        function formatarAreaCar(valor) {
+            const numero = Number(valor);
+            if (!Number.isFinite(numero)) {
+                return "Nao informada";
+            }
+            return `${numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ha`;
+        }
+
+        function formatarInteiro(valor) {
+            return Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+        }
+
+        function alterarView(view) {
+            estado.view = view;
+            estado.janela = view === "panorama" ? "periodo" : "hoje";
+            refs.janelaTemporal.value = estado.janela;
+            estado.jaAjustouMapa = false;
+
+            document.querySelectorAll("[data-view]").forEach((button) => {
+                button.classList.toggle("active", button.dataset.view === view);
+            });
+
+            preencherFiltros();
+            atualizarTela();
+        }
+
+        function atualizarTela() {
+            const ehAreasRisco = estado.view === "risco";
+            const dados = ehAreasRisco ? null : obterDadosAtivos();
+            const featuresOriginais = dados?.features || [];
+            const features = ehAreasRisco ? [] : filtrarFeatures(featuresOriginais);
+            const metadata = dados?.metadata || {};
+
+            if (estado.view === "tempo-real") {
+                refs.tituloPainel.textContent = "Monitoramento tempo real";
+                refs.statusPainel.textContent = "Focos ativos detectados";
+                refs.hintJanela.textContent = "Janela temporal referente ao horario UTC-3";
+            } else if (estado.view === "panorama") {
+                refs.tituloPainel.textContent = "Panorama do Fogo";
+                refs.statusPainel.textContent = "Ocorrencias do periodo monitorado";
+                refs.hintJanela.textContent = "Periodo consolidado desde junho ate o arquivo mais recente";
+            } else if (estado.view === "ventos") {
+                refs.tituloPainel.textContent = "Ventos e Fogo";
+                refs.statusPainel.textContent = "Direcao do vento sobre focos recentes";
+                refs.hintJanela.textContent = "Ventos atuais estimados para pontos de referencia da regiao";
+            } else {
+                refs.tituloPainel.textContent = "Áreas de Risco";
+                refs.statusPainel.textContent = "Zonas prioritarias para preservacao e cuidado";
+                refs.hintJanela.textContent = "Camadas territoriais restritas ao Oeste da Bahia";
+            }
+
+            refs.linhaJanelaTemporal.hidden = ehAreasRisco;
+            refs.linhaRiscoTipo.hidden = !ehAreasRisco;
+            refs.linhaSatelite.hidden = estado.display !== "satelite" || ehAreasRisco;
+            refs.linhaMunicipio.hidden = ehAreasRisco;
+            refs.painelVento.hidden = estado.view !== "ventos";
+
+            camadaFocos.clearLayers();
+
+            if (ehAreasRisco) {
+                atualizarAreasRiscoOperacional();
+                camadaMunicipios.bringToFront();
+                atualizarResumoAreasRisco();
+                atualizarListaAreasRisco();
+            } else {
+                camadaAreasRiscoOperacional.clearLayers();
+                estado.usarIcones = features.length <= 800;
+                camadaFocos.addData({ type: "FeatureCollection", features });
+                atualizarResumo(features, metadata);
+                atualizarLista(features);
+            }
+
+            atualizarCamadaVento(features);
+            ajustarMapa(false);
+        }
+
+        function obterDadosAtivos() {
+            if (estado.view === "ventos") {
+                return estado.dados["tempo-real"];
+            }
+            return estado.dados[estado.view];
+        }
+
+        function filtrarFeatures(features) {
+            const porFiltros = features.filter((feature) => {
+                const p = feature.properties || {};
+                const municipioOk = !estado.municipio || normalizar(p.municipio) === estado.municipio;
+                const sateliteOk = estado.display !== "satelite" || !estado.satelite || p.satelite === estado.satelite;
+                return municipioOk && sateliteOk;
+            });
+
+            if (estado.janela === "periodo") {
+                return porFiltros;
+            }
+
+            const datasValidas = porFiltros
+                .map((feature) => dataLocal(feature.properties?.data_hora))
+                .filter(Boolean)
+                .sort((a, b) => b - a);
+
+            const referencia = datasValidas[0];
+            if (!referencia) {
+                return porFiltros;
+            }
+
+            if (estado.janela === "hoje") {
+                return porFiltros.filter((feature) => {
+                    const data = dataLocal(feature.properties?.data_hora);
+                    return data && mesmoDia(data, referencia);
+                });
+            }
+
+            const horas = Number(estado.janela.replace("h", ""));
+            const limite = referencia.getTime() - horas * 60 * 60 * 1000;
+            return porFiltros.filter((feature) => {
+                const data = dataLocal(feature.properties?.data_hora);
+                return data && data.getTime() >= limite;
+            });
+        }
+
+        function obterChavesAreasRisco() {
+            return estado.riscoTipo === "zona_risco"
+                ? ["app", "reserva", "uc"]
+                : [estado.riscoTipo].filter((chave) => camadasAreasRisco[chave]);
+        }
+
+        function tituloAreaRiscoAtual() {
+            if (estado.riscoTipo === "zona_risco") {
+                return "Zona de risco";
+            }
+
+            return camadasAreasRisco[estado.riscoTipo]?.titulo || "Area de risco";
+        }
+
+        async function atualizarAreasRiscoOperacional() {
+            const chaves = obterChavesAreasRisco();
+            const status = document.getElementById("statusCamadaCar");
+
+            camadaAreasRiscoOperacional.clearLayers();
+            status.textContent = `Carregando ${tituloAreaRiscoAtual()}...`;
+            status.hidden = false;
+
+            try {
+                await Promise.all(chaves.map((chave) => carregarCamadaAreaRisco(chave)));
+                if (estado.view !== "risco") {
+                    return;
+                }
+
+                camadaAreasRiscoOperacional.clearLayers();
+                chaves.forEach((chave) => {
+                    const camada = cacheAreasRisco[chave]?.camada;
+                    if (camada) {
+                        camadaAreasRiscoOperacional.addLayer(camada);
+                    }
+                });
+
+                camadaMunicipios.bringToFront();
+                status.textContent = `${tituloAreaRiscoAtual()} ativa no mapa`;
+                window.setTimeout(() => {
+                    status.hidden = true;
+                }, 2500);
+                atualizarResumoAreasRisco();
+                atualizarListaAreasRisco();
+                ajustarMapa(false);
+            } catch (erro) {
+                console.error(erro);
+                status.textContent = "Falha ao carregar areas de risco.";
+            }
+        }
+
+        async function carregarCamadaAreaRisco(chave) {
+            if (cacheAreasRisco[chave]) {
+                return cacheAreasRisco[chave];
+            }
+
+            const config = camadasAreasRisco[chave];
+            const resposta = await fetch(config.arquivo, { cache: "force-cache" });
+            if (!resposta.ok) {
+                throw new Error(`Nao foi possivel carregar ${config.arquivo}.`);
+            }
+
+            const dados = await resposta.json();
+            const camada = config.tipo === "uc"
+                ? criarCamadaUcRisco(dados, config)
+                : criarCamadaCarRisco(dados, config);
+
+            cacheAreasRisco[chave] = { dados, camada };
+            return cacheAreasRisco[chave];
+        }
+
+        function criarCamadaCarRisco(dados, config) {
+            const camada = L.vectorGrid.slicer(dados, {
+                rendererFactory: L.canvas.tile,
+                interactive: true,
+                maxZoom: 19,
+                vectorTileLayerStyles: {
+                    sliced: {
+                        color: config.corRisco,
+                        weight: 1.15,
+                        opacity: 0.95,
+                        fill: true,
+                        fillColor: config.corRisco,
+                        fillOpacity: config.corRisco === "#f2b705" ? 0.18 : 0.2
+                    }
+                }
+            });
+
+            camada.on("click", (evento) => {
+                const p = evento.layer?.properties || evento.propagatedFrom?.properties || {};
+                L.popup()
+                    .setLatLng(evento.latlng)
+                    .setContent(`
+                        <div class="popup-title">${escaparHtml(config.titulo)}</div>
+                        <div class="popup-row"><span>Zona</span><b>Risco operacional</b></div>
+                        <div class="popup-row"><span>Tipo</span><b>${escaparHtml(p.tipo || "Nao informado")}</b></div>
+                        <div class="popup-row"><span>Area</span><b>${escaparHtml(formatarAreaCar(p.area_decla))}</b></div>
+                        <div class="popup-row"><span>Conservacao</span><b>${escaparHtml(p.est_conser || "Nao informada")}</b></div>
+                        ${p.status ? `<div class="popup-row"><span>Status</span><b>${escaparHtml(p.status)}</b></div>` : ""}
+                    `)
+                    .openOn(mapa);
+            });
+
+            return camada;
+        }
+
+        function criarCamadaUcRisco(dados, config) {
+            return L.geoJSON(dados, {
+                style: {
+                    color: config.corRisco,
+                    weight: 2.6,
+                    opacity: 0.98,
+                    fillColor: config.corRisco,
+                    fillOpacity: 0.16,
+                    dashArray: "8 4"
+                },
+                onEachFeature: (feature, layer) => {
+                    const nome = obterNomeUnidadeConservacao(feature.properties);
+                    layer.bindPopup(`
+                        <div class="popup-title">${escaparHtml(nome)}</div>
+                        <div class="popup-row"><span>Camada</span><b>${escaparHtml(config.titulo)}</b></div>
+                        <div class="popup-row"><span>Zona</span><b>Risco operacional</b></div>
+                    `);
+                }
+            });
+        }
+
+        function aplicarRotulosPainel(modo) {
+            const areas = modo === "areas";
+            refs.tituloLista.textContent = areas ? "Lista de areas" : "Lista de focos";
+            refs.rotuloTotal.textContent = areas ? "Areas no filtro" : "Focos no periodo";
+            refs.rotuloMunicipiosAfetados.textContent = areas ? "Camadas no filtro" : "Municipios com ocorrencia";
+            refs.rotuloSatelitesAtivos.textContent = areas ? "Criticidade" : "Satelites no filtro";
+            refs.rotuloUltimoHorario.textContent = areas ? "Status" : "Registro mais recente";
+        }
+
+        function atualizarResumo(features, metadata) {
+            aplicarRotulosPainel("focos");
+            const municipios = new Set(features.map((feature) => normalizar(feature.properties?.municipio)).filter(Boolean));
+            const satelites = new Set(features.map((feature) => feature.properties?.satelite).filter(Boolean));
+            const datas = features.map((feature) => dataLocal(feature.properties?.data_hora)).filter(Boolean).sort((a, b) => b - a);
+            const periodo = formatarPeriodo(metadata);
+
+            refs.totalFocos.textContent = features.length;
+            refs.municipiosAfetados.textContent = municipios.size;
+            refs.totalMunicipios.textContent = estado.limites?.features?.length || 0;
+            refs.satelitesAtivos.textContent = satelites.size;
+            refs.ultimoHorario.textContent = datas[0] ? formatarHora(datas[0]) : "--";
+            refs.legendaFocos.textContent = `Focos de Incendio (${features.length})`;
+            refs.legendaPeriodo.textContent = periodo || "Dados consolidados";
+            refs.legendaRiscoClasses.hidden = true;
+            refs.legendaRiscoClasses.innerHTML = "";
+        }
+
+        function atualizarResumoAreasRisco() {
+            aplicarRotulosPainel("areas");
+            const chaves = obterChavesAreasRisco();
+            const totalAreas = chaves.reduce((total, chave) => {
+                const dados = cacheAreasRisco[chave]?.dados;
+                return total + Number(dados?.metadata?.feicoes || dados?.features?.length || 0);
+            }, 0);
+
+            refs.totalFocos.textContent = totalAreas ? formatarInteiro(totalAreas) : "--";
+            refs.municipiosAfetados.textContent = chaves.length;
+            refs.totalMunicipios.textContent = estado.limites?.features?.length || 0;
+            refs.satelitesAtivos.textContent = "Alta";
+            refs.ultimoHorario.textContent = totalAreas ? "Ativo" : "Carregando";
+            refs.legendaFocos.textContent = `${tituloAreaRiscoAtual()}${totalAreas ? ` (${formatarInteiro(totalAreas)})` : ""}`;
+            refs.legendaPeriodo.textContent = "Areas de preservacao priorizadas para cuidado";
+            refs.legendaRiscoClasses.hidden = false;
+            refs.legendaRiscoClasses.innerHTML = chaves.map((chave) => {
+                const config = camadasAreasRisco[chave];
+                return `<div class="legend-row"><span class="risk-swatch" style="background:${escaparHtml(config.corRisco)}"></span><span>${escaparHtml(config.titulo)}</span></div>`;
+            }).join("");
+        }
+
+        function atualizarLista(features) {
+            const ordenados = [...features].sort((a, b) => {
+                return String(b.properties?.data_hora || "").localeCompare(String(a.properties?.data_hora || ""));
+            });
+
+            if (!ordenados.length) {
+                refs.listaOcorrencias.innerHTML = '<li class="empty">Nenhum foco encontrado para os filtros atuais.</li>';
+                return;
+            }
+
+            refs.listaOcorrencias.innerHTML = ordenados.slice(0, 20).map((feature) => {
+                const p = feature.properties || {};
+                return `
+                    <li class="focus-item">
+                        <div class="focus-meta">
+                            <div>
+                                <span class="focus-label">Deteccao</span>
+                                <span class="focus-value">${escaparHtml(formatarDataHora(p.data_hora))}</span>
+                            </div>
+                            <div class="focus-temp">
+                                <span class="focus-label">FRP</span>
+                                <span class="focus-value">${escaparHtml(formatarNumero(p.frp))}</span>
+                            </div>
+                        </div>
+                        <div class="focus-place">
+                            <span class="small-red-dot"></span>
+                            <span>${escaparHtml(p.municipio || "Municipio nao informado")} | ${escaparHtml(p.satelite || "Satelite N/A")}</span>
+                        </div>
+                    </li>
+                `;
+            }).join("");
+        }
+
+        function atualizarListaAreasRisco() {
+            const chaves = obterChavesAreasRisco();
+            const linhas = chaves.map((chave) => {
+                const config = camadasAreasRisco[chave];
+                const dados = cacheAreasRisco[chave]?.dados;
+                const total = Number(dados?.metadata?.feicoes || dados?.features?.length || 0);
+                const valor = total ? `${formatarInteiro(total)} areas` : "Carregando";
+
+                return `
+                    <li class="focus-item">
+                        <div class="focus-meta">
+                            <div>
+                                <span class="focus-label">Camada</span>
+                                <span class="focus-value">${escaparHtml(config.titulo)}</span>
+                            </div>
+                            <div class="focus-temp">
+                                <span class="focus-label">Zona</span>
+                                <span class="focus-value">Risco</span>
+                            </div>
+                        </div>
+                        <div class="focus-place">
+                            <span class="small-red-dot" style="background:${escaparHtml(config.corRisco)}"></span>
+                            <span>${escaparHtml(valor)} | ${escaparHtml(config.fonte)}</span>
+                        </div>
+                    </li>
+                `;
+            });
+
+            refs.listaOcorrencias.innerHTML = linhas.join("");
+        }
+
+        function atualizarCamadaVento(features) {
+            camadaVento.clearLayers();
+
+            if (estado.view !== "ventos") {
+                return;
+            }
+
+            if (!estado.vento.pontos.length && !estado.vento.carregando) {
+                carregarVentos().then(() => atualizarCamadaVento(features));
+            }
+
+            if (estado.vento.carregando) {
+                refs.ventoStatus.textContent = "Carregando dados de vento...";
+                return;
+            }
+
+            if (estado.vento.erro) {
+                refs.ventoStatus.textContent = estado.vento.erro;
+                refs.ventoMedio.textContent = "--";
+                refs.ventoDirecao.textContent = "--";
+                return;
+            }
+
+            if (!estado.vento.pontos.length) {
+                refs.ventoStatus.textContent = "Sem dados de vento disponiveis.";
+                return;
+            }
+
+            for (const ponto of estado.vento.pontos) {
+                const direcaoInclina = normalizarGraus(ponto.direcao + 180);
+                L.marker([ponto.lat, ponto.lon], {
+                    icon: L.divIcon({
+                        className: "wind-icon",
+                        html: `<div class="wind-marker" style="transform: rotate(${direcaoInclina}deg)"></div>`,
+                        iconSize: [34, 34],
+                        iconAnchor: [17, 17]
+                    })
+                })
+                    .bindTooltip(`${ponto.nome}: ${formatarNumero(ponto.velocidade)} km/h, inclinacao para ${cardinal(direcaoInclina)}`)
+                    .addTo(camadaVento);
+            }
+
+            desenharTendenciaFogo(features);
+            atualizarResumoVento();
+        }
+
+        async function carregarVentos() {
+            estado.vento.carregando = true;
+            estado.vento.erro = null;
+
+            try {
+                const pontos = await Promise.all(PONTOS_VENTO.map(obterVentoPonto));
+                estado.vento.pontos = pontos.filter(Boolean);
+                estado.vento.atualizadoEm = new Date();
+            } catch (erro) {
+                estado.vento.erro = "Nao foi possivel carregar vento publico agora.";
+            } finally {
+                estado.vento.carregando = false;
+            }
+        }
+
+        async function obterVentoPonto(ponto) {
+            const params = new URLSearchParams({
+                latitude: ponto.lat,
+                longitude: ponto.lon,
+                current: "wind_speed_10m,wind_direction_10m",
+                wind_speed_unit: "kmh",
+                timezone: "America/Sao_Paulo"
+            });
+            const resposta = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+            if (!resposta.ok) {
+                throw new Error("Falha no Open-Meteo");
+            }
+
+            const dados = await resposta.json();
+            const atual = dados.current || {};
+            const velocidade = Number(atual.wind_speed_10m);
+            const direcao = Number(atual.wind_direction_10m);
+
+            if (Number.isNaN(velocidade) || Number.isNaN(direcao)) {
+                return null;
+            }
+
+            return { ...ponto, velocidade, direcao };
+        }
+
+        function desenharTendenciaFogo(features) {
+            const focosRecentes = [...features]
+                .sort((a, b) => String(b.properties?.data_hora || "").localeCompare(String(a.properties?.data_hora || "")))
+                .slice(0, 80);
+
+            for (const feature of focosRecentes) {
+                const coords = feature.geometry?.coordinates;
+                if (!coords || coords.length < 2) {
+                    continue;
+                }
+
+                const lat = Number(coords[1]);
+                const lon = Number(coords[0]);
+                const vento = ventoMaisProximo(lat, lon);
+                if (!vento) {
+                    continue;
+                }
+
+                const direcaoInclina = normalizarGraus(vento.direcao + 180);
+                const distanciaKm = Math.min(28, Math.max(6, vento.velocidade * 0.9));
+                const destino = destinoPorDirecao(lat, lon, direcaoInclina, distanciaKm);
+
+                L.polyline(
+                    [[lat, lon], [destino.lat, destino.lon]],
+                    {
+                        color: "#f59e0b",
+                        weight: 1.6,
+                        opacity: 0.72,
+                        dashArray: "5 6"
+                    }
+                ).addTo(camadaVento);
+            }
+        }
+
+        function atualizarResumoVento() {
+            const velocidades = estado.vento.pontos.map((ponto) => ponto.velocidade);
+            const direcoesInclina = estado.vento.pontos.map((ponto) => normalizarGraus(ponto.direcao + 180));
+            const mediaVelocidade = velocidades.reduce((soma, valor) => soma + valor, 0) / velocidades.length;
+            const mediaDirecao = direcaoCircularMedia(direcoesInclina);
+
+            refs.ventoMedio.textContent = `${formatarNumero(mediaVelocidade)} km/h`;
+            refs.ventoDirecao.textContent = cardinal(mediaDirecao);
+            refs.ventoStatus.textContent = `Fonte Open-Meteo | ${estado.vento.pontos.length} pontos`;
+        }
+
+        function ventoMaisProximo(lat, lon) {
+            let melhor = null;
+            let melhorDistancia = Infinity;
+
+            for (const ponto of estado.vento.pontos) {
+                const distancia = Math.hypot(lat - ponto.lat, lon - ponto.lon);
+                if (distancia < melhorDistancia) {
+                    melhor = ponto;
+                    melhorDistancia = distancia;
+                }
+            }
+
+            return melhor;
+        }
+
+        function destinoPorDirecao(lat, lon, graus, distanciaKm) {
+            const raioTerraKm = 6371;
+            const distanciaAngular = distanciaKm / raioTerraKm;
+            const bearing = graus * Math.PI / 180;
+            const lat1 = lat * Math.PI / 180;
+            const lon1 = lon * Math.PI / 180;
+
+            const lat2 = Math.asin(
+                Math.sin(lat1) * Math.cos(distanciaAngular) +
+                Math.cos(lat1) * Math.sin(distanciaAngular) * Math.cos(bearing)
+            );
+            const lon2 = lon1 + Math.atan2(
+                Math.sin(bearing) * Math.sin(distanciaAngular) * Math.cos(lat1),
+                Math.cos(distanciaAngular) - Math.sin(lat1) * Math.sin(lat2)
+            );
+
+            return {
+                lat: lat2 * 180 / Math.PI,
+                lon: lon2 * 180 / Math.PI
+            };
+        }
+
+        function direcaoCircularMedia(grausLista) {
+            const vetor = grausLista.reduce((acc, graus) => {
+                const rad = graus * Math.PI / 180;
+                acc.x += Math.cos(rad);
+                acc.y += Math.sin(rad);
+                return acc;
+            }, { x: 0, y: 0 });
+
+            return normalizarGraus(Math.atan2(vetor.y, vetor.x) * 180 / Math.PI);
+        }
+
+        function normalizarGraus(graus) {
+            return ((graus % 360) + 360) % 360;
+        }
+
+        function cardinal(graus) {
+            const nomes = ["N", "NE", "L", "SE", "S", "SO", "O", "NO"];
+            return nomes[Math.round(normalizarGraus(graus) / 45) % 8];
+        }
+
+        function preencherFiltros() {
+            const features = obterDadosAtivos()?.features || [];
+            const municipios = (estado.limites?.features || [])
+                .map((feature) => obterNomeMunicipio(feature.properties))
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b, "pt-BR"));
+            const satelites = [...new Set(features.map((feature) => feature.properties?.satelite).filter(Boolean))]
+                .sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+            preencherSelect(refs.filtroMunicipio, municipios, "Todos os municipios", normalizar, estado.municipio);
+            preencherSelect(refs.filtroSatelite, satelites, "Todos os satelites", (valor) => valor, estado.satelite);
+
+            estado.municipio = refs.filtroMunicipio.value;
+            estado.satelite = refs.filtroSatelite.value;
+        }
+
+        function preencherSelect(select, valores, textoPadrao, valorFn, valorAtual) {
+            select.innerHTML = "";
+            const optionTodos = document.createElement("option");
+            optionTodos.value = "";
+            optionTodos.textContent = textoPadrao;
+            select.appendChild(optionTodos);
+
+            for (const valor of valores) {
+                const option = document.createElement("option");
+                option.value = valorFn(valor);
+                option.textContent = valor;
+                select.appendChild(option);
+            }
+
+            select.value = [...select.options].some((option) => option.value === valorAtual) ? valorAtual : "";
+        }
+
+        function ajustarMapa(forcar) {
+            const boundsFocos = camadaFocos.getBounds();
+            const boundsMunicipios = camadaMunicipios.getBounds();
+
+            if (!forcar && estado.jaAjustouMapa) {
+                return;
+            }
+
+            if (boundsFocos.isValid()) {
+                mapa.fitBounds(boundsFocos.pad(0.25), { maxZoom: 10 });
+                estado.jaAjustouMapa = true;
+                return;
+            }
+
+            if (boundsMunicipios.isValid()) {
+                mapa.fitBounds(boundsMunicipios.pad(0.06));
+                estado.jaAjustouMapa = true;
+            }
+        }
+
+        function obterNomeMunicipio(properties = {}) {
+            return properties.NM_MUN ||
+                properties.NM_MUNICIP ||
+                properties.NM_MUNICIPIO ||
+                properties.nome ||
+                properties.NOME ||
+                properties.municipio ||
+                "Municipio";
+        }
+
+        function normalizar(valor) {
+            return String(valor || "")
+                .trim()
+                .toUpperCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function dataLocal(valor) {
+            if (!valor) {
+                return null;
+            }
+
+            const texto = String(valor).replace(" ", "T");
+            const dataUtc = new Date(`${texto.endsWith("Z") ? texto : `${texto}Z`}`);
+            if (Number.isNaN(dataUtc.getTime())) {
+                return null;
+            }
+
+            return new Date(dataUtc.getTime() - 3 * 60 * 60 * 1000);
+        }
+
+        function mesmoDia(a, b) {
+            return a.getFullYear() === b.getFullYear() &&
+                a.getMonth() === b.getMonth() &&
+                a.getDate() === b.getDate();
+        }
+
+        function formatarHora(data) {
+            return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        }
+
+        function formatarDataHora(valor) {
+            const data = dataLocal(valor);
+            if (!data) {
+                return "Sem data";
+            }
+            return data.toLocaleString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        function formatarPeriodo(metadata) {
+            if (!metadata?.period_start || !metadata?.period_end) {
+                return "";
+            }
+
+            const inicio = metadata.period_start.split("-").reverse().join("/");
+            const fim = metadata.period_end.split("-").reverse().join("/");
+            return inicio === fim ? `Dados de ${inicio}` : `Periodo ${inicio} ate ${fim}`;
+        }
+
+        function formatarNumero(valor) {
+            if (valor === null || valor === undefined || valor === "N/A" || Number.isNaN(Number(valor))) {
+                return "N/A";
+            }
+            return Number(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+        }
+
+        function escaparHtml(valor) {
+            return String(valor)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+    </script>
+</body>
+</html>
+
+
