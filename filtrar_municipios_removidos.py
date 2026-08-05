@@ -11,7 +11,6 @@ ARQUIVOS = [
 MUNICIPIOS_REMOVIDOS = {
     "PARATINGA",
     "IUIU",
-    "IBOTIRAMA",
 }
 
 

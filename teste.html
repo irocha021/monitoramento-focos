@@ -66,6 +66,7 @@
         }
 
         .nav-scroll {
+            flex: 1 1 auto;
             overflow: auto;
             padding: 14px 10px 24px;
             border-top: 3px solid var(--aiba-blue);
@@ -166,6 +167,117 @@
             display: none;
         }
 
+        .sos-panel {
+            margin: 0 10px 14px;
+            border: 1px solid rgba(239, 46, 43, 0.28);
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 10px 24px rgba(16, 24, 40, 0.11);
+            overflow: hidden;
+        }
+
+        .sos-head {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 12px;
+            color: #ffffff;
+            background: linear-gradient(135deg, #b91c1c, var(--fire));
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .sos-head svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .sos-body {
+            display: grid;
+            gap: 9px;
+            padding: 10px;
+            background: linear-gradient(180deg, #fff7f7, #ffffff);
+        }
+
+        .sos-contact {
+            display: grid;
+            grid-template-columns: 38px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 9px;
+            min-height: 54px;
+            padding: 8px 9px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            color: var(--ink);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .sos-contact.fire {
+            border-color: rgba(239, 46, 43, 0.3);
+        }
+
+        .sos-contact.civil {
+            border-color: rgba(23, 103, 166, 0.3);
+        }
+
+        .sos-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 7px;
+            color: #ffffff;
+        }
+
+        .sos-contact.fire .sos-icon {
+            background: var(--fire);
+        }
+
+        .sos-contact.civil .sos-icon {
+            background: var(--aiba-blue);
+        }
+
+        .sos-icon svg {
+            width: 21px;
+            height: 21px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .sos-text {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .sos-text strong {
+            font-size: 0.82rem;
+            line-height: 1.15;
+        }
+
+        .sos-text span {
+            color: var(--muted);
+            font-size: 0.72rem;
+            line-height: 1.2;
+        }
+
+        .sos-number {
+            color: #071527;
+            font-size: 1.18rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
         .map-stage {
             position: relative;
             min-width: 0;
@@ -242,9 +354,37 @@
             font-weight: 800;
         }
 
+        .legend.collapsed .legend-head {
+            border-bottom: 0;
+        }
+
+        .legend-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 4px;
+            background: transparent;
+            color: #071527;
+            cursor: pointer;
+            font-weight: 900;
+        }
+
+        .legend-toggle:hover,
+        .legend-toggle:focus-visible {
+            background: rgba(23, 103, 166, 0.1);
+            outline: none;
+        }
+
         .legend-body {
             color: #374151;
             font-size: 0.78rem;
+        }
+
+        .legend.collapsed .legend-body {
+            display: none;
         }
 
         .legend-title {
@@ -808,6 +948,14 @@
                 height: auto;
             }
 
+            .nav-scroll {
+                padding-bottom: 10px;
+            }
+
+            .sos-panel {
+                margin: 0 12px 12px;
+            }
+
             .map-stage {
                 height: 62vh;
             }
@@ -841,6 +989,35 @@
                 <button class="nav-child" type="button" data-view="risco">Áreas de Risco</button>
                 <button class="nav-child" type="button" data-map-reset>Mapa</button>
             </nav>
+
+            <section class="sos-panel" aria-label="Canal SOS">
+                <div class="sos-head">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18" /><path d="M3 12h18" /><path d="M5.6 5.6 18.4 18.4" /><path d="M18.4 5.6 5.6 18.4" /></svg>
+                    <span>Canal SOS</span>
+                </div>
+                <div class="sos-body">
+                    <a class="sos-contact fire" href="tel:193">
+                        <span class="sos-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A4.5 4.5 0 0 0 13 19a6 6 0 0 0 6-6c0-4-3-7-6-10 .2 2-1 3.5-2.5 4.8C8.8 9.3 7 11 7 14a6 6 0 0 0 6 6" /></svg>
+                        </span>
+                        <span class="sos-text">
+                            <strong>Corpo de Bombeiros</strong>
+                            <span>Incendios e queimadas fora de controle</span>
+                        </span>
+                        <span class="sos-number">193</span>
+                    </a>
+                    <a class="sos-contact civil" href="tel:199">
+                        <span class="sos-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 16.2A4.5 4.5 0 0 0 18 8h-1.3A6 6 0 0 0 5.1 9.5 3.5 3.5 0 0 0 6.5 16H20Z" /><path d="M8 19v1" /><path d="M12 19v1" /><path d="M16 19v1" /></svg>
+                        </span>
+                        <span class="sos-text">
+                            <strong>Defesa Civil</strong>
+                            <span>Risco a populacao e orientacoes emergenciais</span>
+                        </span>
+                        <span class="sos-number">199</span>
+                    </a>
+                </div>
+            </section>
         </aside>
 
         <main class="map-stage">
@@ -860,7 +1037,7 @@
             <div class="legend" aria-label="Legenda">
                 <div class="legend-head">
                     <span>Legenda</span>
-                    <span>v</span>
+                    <button class="legend-toggle" id="botaoLegenda" type="button" aria-label="Ocultar legenda" aria-expanded="true">v</button>
                 </div>
                 <div class="legend-body">
                     <div class="legend-title">Monitoramento Ativo</div>
@@ -1015,6 +1192,7 @@
             { nome: "Correntina", lat: -13.3475, lon: -44.6367 },
             { nome: "Santa Maria da Vitoria", lat: -13.3972, lon: -44.1986 },
             { nome: "Bom Jesus da Lapa", lat: -13.255, lon: -43.4186 },
+            { nome: "Ibotirama", lat: -12.1853, lon: -43.2206 },
             { nome: "Barra", lat: -11.0894, lon: -43.1417 },
             { nome: "Cocos", lat: -14.1814, lon: -44.535 },
             { nome: "Jaborandi", lat: -13.6231, lon: -44.4597 }
@@ -1205,6 +1383,8 @@
             linhaRiscoTipo: document.getElementById("linhaRiscoTipo"),
             filtroRiscoTipo: document.getElementById("filtroRiscoTipo"),
             hintJanela: document.getElementById("hintJanela"),
+            legenda: document.querySelector(".legend"),
+            botaoLegenda: document.getElementById("botaoLegenda"),
             totalFocos: document.getElementById("totalFocos"),
             municipiosAfetados: document.getElementById("municipiosAfetados"),
             totalMunicipios: document.getElementById("totalMunicipios"),
@@ -1274,6 +1454,12 @@
         });
         document.getElementById("botaoFogo").addEventListener("click", () => ajustarMapa(true));
         document.getElementById("botaoImprimir").addEventListener("click", () => window.print());
+        refs.botaoLegenda.addEventListener("click", () => {
+            const recolhida = refs.legenda.classList.toggle("collapsed");
+            refs.botaoLegenda.textContent = recolhida ? "^" : "v";
+            refs.botaoLegenda.setAttribute("aria-expanded", String(!recolhida));
+            refs.botaoLegenda.setAttribute("aria-label", recolhida ? "Mostrar legenda" : "Ocultar legenda");
+        });
         mapa.on("overlayadd", (evento) => {
             const entrada = Object.entries(camadasCar).find(([, config]) => config.grupo === evento.layer);
             if (entrada) {

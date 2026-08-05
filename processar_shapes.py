@@ -27,6 +27,7 @@ MUNICIPIOS_OESTE = [
     "Carinhanha",
     "Sao Desiderio",
     "Santa Rita de Cassia",
+    "Ibotirama",
     "Santana",
     "Formosa do Rio Preto",
     "Riachao das Neves",
