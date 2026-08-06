@@ -1002,7 +1002,7 @@
                         </span>
                         <span class="sos-text">
                             <strong>Corpo de Bombeiros</strong>
-                            <span>Incendios e queimadas fora de controle</span>
+                            <span>Incêndios e queimadas fora de controle</span>
                         </span>
                         <span class="sos-number">193</span>
                     </a>
@@ -1012,7 +1012,7 @@
                         </span>
                         <span class="sos-text">
                             <strong>Defesa Civil</strong>
-                            <span>Risco a populacao e orientacoes emergenciais</span>
+                            <span>Risco à população e orientações emergenciais</span>
                         </span>
                         <span class="sos-number">199</span>
                     </a>
@@ -1041,11 +1041,11 @@
                 </div>
                 <div class="legend-body">
                     <div class="legend-title">Monitoramento Ativo</div>
-                    <div class="legend-row"><span class="fire-dot">!</span><span id="legendaFocos">Focos de Incendio (0)</span></div>
+                    <div class="legend-row"><span class="fire-dot">!</span><span id="legendaFocos">Focos de Incêndio (0)</span></div>
                     <div class="legend-note" id="legendaPeriodo">Dados consolidados</div>
                     <div id="legendaRiscoClasses" hidden></div>
                     <div class="legend-row"><span class="municipio-line"></span><span>Limite municipal</span></div>
-                    <div class="legend-row"><span class="unidade-conservacao-line"></span><span>Unidades de conservacao (APA)</span></div>
+                    <div class="legend-row"><span class="unidade-conservacao-line"></span><span>Unidades de conservação (APA)</span></div>
                 </div>
             </div>
         </main>
@@ -1063,19 +1063,19 @@
                 <div class="status-line"><span class="live-dot"></span><span id="statusPainel">Focos ativos detectados</span></div>
                 <div class="time-pill">
                     <svg class="small-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-                    <span>Horarios exibidos em UTC-3</span>
+                    <span>Horários exibidos em UTC-3</span>
                 </div>
 
                 <section class="control-box">
                     <div class="field-label">
                         <svg class="small-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 22h8M12 18v4" /></svg>
-                        Modo de exibicao
+                        Modo de exibição
                     </div>
                     <div class="segmented">
                         <button class="segment active" type="button" data-display="geral">&#10003; Geral</button>
                         <button class="segment" type="button" data-display="satelite">
                             <svg class="small-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>
-                            Por Satelite
+                            Por Satélite
                         </button>
                     </div>
 
@@ -1086,35 +1086,35 @@
                         </div>
                         <select id="janelaTemporal">
                             <option value="hoje">Todas as horas (Hoje)</option>
-                            <option value="1h">Ultima 1 hora</option>
-                            <option value="6h">Ultimas 6 horas</option>
-                            <option value="24h">Ultimas 24 horas</option>
-                            <option value="periodo">Periodo completo carregado</option>
+                            <option value="1h">Última 1 hora</option>
+                            <option value="6h">Últimas 6 horas</option>
+                            <option value="24h">Últimas 24 horas</option>
+                            <option value="periodo">Período completo carregado</option>
                         </select>
-                        <p class="hint" id="hintJanela">Janela temporal referente ao horario UTC-3</p>
+                        <p class="hint" id="hintJanela">Janela temporal referente ao horário UTC-3</p>
                     </div>
 
                     <div class="select-row" id="linhaSatelite" hidden>
-                        <div class="field-label">Satelite</div>
+                        <div class="field-label">Satélite</div>
                         <select id="filtroSatelite">
-                            <option value="">Todos os satelites</option>
+                            <option value="">Todos os satélites</option>
                         </select>
                     </div>
 
                     <div class="select-row" id="linhaRiscoTipo" hidden>
-                        <div class="field-label">Camada de preservacao</div>
+                        <div class="field-label">Camada de preservação</div>
                         <select id="filtroRiscoTipo">
                             <option value="zona_risco">Zona de risco</option>
-                            <option value="app">Areas de APP (CAR)</option>
+                            <option value="app">Áreas de APP (CAR)</option>
                             <option value="reserva">Reserva Legal (CAR)</option>
-                            <option value="uc">Unidades de conservacao (APA)</option>
+                            <option value="uc">Unidades de conservação (APA)</option>
                         </select>
                     </div>
 
                     <div class="select-row" id="linhaMunicipio">
-                        <div class="field-label">Municipio</div>
+                        <div class="field-label">Município</div>
                         <select id="filtroMunicipio">
-                            <option value="">Todos os municipios</option>
+                            <option value="">Todos os municípios</option>
                         </select>
                     </div>
                 </section>
@@ -1125,22 +1125,22 @@
                 </div>
 
                 <div class="summary-card">
-                    <span id="rotuloTotal">Focos no periodo</span>
+                    <span id="rotuloTotal">Focos no período</span>
                     <strong id="totalFocos">0</strong>
                 </div>
 
                 <div class="metric-grid">
                     <div class="metric">
                         <strong id="municipiosAfetados">0</strong>
-                        <span id="rotuloMunicipiosAfetados">Municipios com ocorrencia</span>
+                        <span id="rotuloMunicipiosAfetados">Municípios com ocorrência</span>
                     </div>
                     <div class="metric">
                         <strong id="totalMunicipios">0</strong>
-                        <span>Municipios monitorados</span>
+                        <span>Municípios monitorados</span>
                     </div>
                     <div class="metric">
                         <strong id="satelitesAtivos">0</strong>
-                        <span id="rotuloSatelitesAtivos">Satelites no filtro</span>
+                        <span id="rotuloSatelitesAtivos">Satélites no filtro</span>
                     </div>
                     <div class="metric">
                         <strong id="ultimoHorario">--</strong>
@@ -1149,7 +1149,7 @@
                 </div>
 
                 <div class="wind-card" id="painelVento" hidden>
-                    <div class="field-label">Vento atual e inclinacao provavel</div>
+                    <div class="field-label">Vento atual e inclinação provável</div>
                     <div class="wind-grid">
                         <div class="wind-metric">
                             <strong id="ventoMedio">--</strong>
@@ -1157,7 +1157,7 @@
                         </div>
                         <div class="wind-metric">
                             <strong id="ventoDirecao">--</strong>
-                            <span>Direcao predominante</span>
+                            <span>Direção predominante</span>
                         </div>
                     </div>
                     <div class="wind-source">
@@ -1185,8 +1185,8 @@
         const INTERVALO_ATUALIZACAO_MS = 60000;
         const PONTOS_VENTO = [
             { nome: "Barreiras", lat: -12.1528, lon: -44.99 },
-            { nome: "Luis Eduardo Magalhaes", lat: -12.0956, lon: -45.7866 },
-            { nome: "Sao Desiderio", lat: -12.3633, lon: -44.9736 },
+            { nome: "Luís Eduardo Magalhães", lat: -12.0956, lon: -45.7866 },
+            { nome: "São Desidério", lat: -12.3633, lon: -44.9736 },
             { nome: "Riachao das Neves", lat: -11.7461, lon: -44.91 },
             { nome: "Formosa do Rio Preto", lat: -11.0483, lon: -45.1931 },
             { nome: "Correntina", lat: -13.3475, lon: -44.6367 },
@@ -1218,7 +1218,7 @@
 
         const controleCamadas = L.control.layers(
             {
-                "Satelite": mapaSatelite,
+                "Satélite": mapaSatelite,
                 "Mapa de ruas": mapaRua
             },
             {},
@@ -1228,14 +1228,14 @@
         const camadaAppCar = L.layerGroup();
         const camadaReservaLegalCar = L.layerGroup();
 
-        controleCamadas.addOverlay(camadaAppCar, "Areas de APP (CAR)");
+        controleCamadas.addOverlay(camadaAppCar, "Áreas de APP (CAR)");
         controleCamadas.addOverlay(camadaReservaLegalCar, "Reserva Legal (CAR)");
 
         const camadasCar = {
             app: {
                 grupo: camadaAppCar,
                 arquivo: "imovel_rural_app_oeste.geojson",
-                titulo: "Area de Preservacao Permanente",
+                titulo: "Área de Preservação Permanente",
                 cor: "#00ff66",
                 carregada: false,
                 carregando: false
@@ -1253,7 +1253,7 @@
         const camadasAreasRisco = {
             app: {
                 arquivo: "imovel_rural_app_oeste.geojson",
-                titulo: "Areas de APP (CAR)",
+                titulo: "Áreas de APP (CAR)",
                 fonte: "Cadastro Ambiental Rural",
                 tipo: "car",
                 corRisco: "#ef2e2b"
@@ -1267,8 +1267,8 @@
             },
             uc: {
                 arquivo: ARQUIVO_UNIDADES_CONSERVACAO,
-                titulo: "Unidades de conservacao (APA)",
-                fonte: "Unidades de Conservacao",
+                titulo: "Unidades de conservação (APA)",
+                fonte: "Unidades de Conservação",
                 tipo: "uc",
                 corRisco: "#ef2e2b"
             }
@@ -1293,7 +1293,7 @@
                 });
                 layer.bindPopup(`
                     <div class="popup-title">${escaparHtml(nome)}</div>
-                    <div class="popup-row"><span>Camada</span><b>Unidade de conservacao</b></div>
+                    <div class="popup-row"><span>Camada</span><b>Unidade de conservação</b></div>
                     <div class="popup-row"><span>Categoria</span><b>APA</b></div>
                 `);
             }
@@ -1337,9 +1337,10 @@
             onEachFeature: (feature, layer) => {
                 const p = feature.properties || {};
                 layer.bindPopup(`
-                    <div class="popup-title">${escaparHtml(p.municipio || "Municipio nao informado")}</div>
-                    <div class="popup-row"><span>Deteccao</span><b>${escaparHtml(formatarDataHora(p.data_hora))}</b></div>
-                    <div class="popup-row"><span>Satelite</span><b>${escaparHtml(p.satelite || "N/A")}</b></div>
+                    <div class="popup-title">${escaparHtml(p.municipio || "Município não informado")}</div>
+                    <div class="popup-row"><span>Detecção</span><b>${escaparHtml(formatarDataHora(p.data_hora))}</b></div>
+                    <div class="popup-row"><span>Coordenadas</span><b>${escaparHtml(formatarCoordenadasFoco(feature))}</b></div>
+                    <div class="popup-row"><span>Satélite</span><b>${escaparHtml(p.satelite || "N/A")}</b></div>
                     <div class="popup-row"><span>Bioma</span><b>${escaparHtml(p.bioma || "N/A")}</b></div>
                     <div class="popup-row"><span>FRP</span><b>${escaparHtml(formatarNumero(p.frp))}</b></div>
                 `);
@@ -1508,7 +1509,7 @@
             try {
                 const resposta = await fetch(`${arquivo}?v=${Date.now()}`, { cache: "no-store" });
                 if (!resposta.ok) {
-                    throw new Error(`${arquivo} nao encontrado.`);
+                    throw new Error(`${arquivo} não encontrado.`);
                 }
                 return { ok: true, dados: await resposta.json() };
             } catch (erro) {
@@ -1531,7 +1532,7 @@
             try {
                 const resposta = await fetch(config.arquivo, { cache: "force-cache" });
                 if (!resposta.ok) {
-                    throw new Error(`Nao foi possivel carregar ${config.arquivo}.`);
+                    throw new Error(`Não foi possível carregar ${config.arquivo}.`);
                 }
 
                 const dados = await resposta.json();
@@ -1559,9 +1560,9 @@
                         .setLatLng(evento.latlng)
                         .setContent(`
                             <div class="popup-title">${escaparHtml(config.titulo)}</div>
-                            <div class="popup-row"><span>Tipo</span><b>${escaparHtml(p.tipo || "Nao informado")}</b></div>
+                            <div class="popup-row"><span>Tipo</span><b>${escaparHtml(p.tipo || "Não informado")}</b></div>
                             <div class="popup-row"><span>Area</span><b>${escaparHtml(formatarAreaCar(p.area_decla))}</b></div>
-                            <div class="popup-row"><span>Conservacao</span><b>${escaparHtml(p.est_conser || "Nao informada")}</b></div>
+                            <div class="popup-row"><span>Conservação</span><b>${escaparHtml(p.est_conser || "Não informada")}</b></div>
                             ${p.status ? `<div class="popup-row"><span>Status</span><b>${escaparHtml(p.status)}</b></div>` : ""}
                         `)
                         .openOn(mapa);
@@ -1569,7 +1570,7 @@
 
                 config.grupo.addLayer(camadaVetorial);
                 config.carregada = true;
-                status.textContent = `${config.titulo} carregada (${formatarInteiro(dados.metadata?.feicoes || dados.features?.length || 0)} areas)`;
+                status.textContent = `${config.titulo} carregada (${formatarInteiro(dados.metadata?.feicoes || dados.features?.length || 0)} áreas)`;
                 window.setTimeout(() => {
                     status.hidden = true;
                 }, 3000);
@@ -1582,13 +1583,13 @@
         }
 
         function obterNomeUnidadeConservacao(propriedades = {}) {
-            return propriedades.name || propriedades.nome || propriedades.Name || "Unidade de conservacao";
+            return propriedades.name || propriedades.nome || propriedades.Name || "Unidade de conservação";
         }
 
         function formatarAreaCar(valor) {
             const numero = Number(valor);
             if (!Number.isFinite(numero)) {
-                return "Nao informada";
+                return "Não informada";
             }
             return `${numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ha`;
         }
@@ -1621,18 +1622,18 @@
             if (estado.view === "tempo-real") {
                 refs.tituloPainel.textContent = "Monitoramento tempo real";
                 refs.statusPainel.textContent = "Focos ativos detectados";
-                refs.hintJanela.textContent = "Janela temporal referente ao horario UTC-3";
+                refs.hintJanela.textContent = "Janela temporal referente ao horário UTC-3";
             } else if (estado.view === "panorama") {
                 refs.tituloPainel.textContent = "Panorama do Fogo";
-                refs.statusPainel.textContent = "Ocorrencias do periodo monitorado";
-                refs.hintJanela.textContent = "Periodo consolidado desde junho ate o arquivo mais recente";
+                refs.statusPainel.textContent = "Ocorrências do período monitorado";
+                refs.hintJanela.textContent = "Período consolidado desde junho até o arquivo mais recente";
             } else if (estado.view === "ventos") {
                 refs.tituloPainel.textContent = "Ventos e Fogo";
-                refs.statusPainel.textContent = "Direcao do vento sobre focos recentes";
-                refs.hintJanela.textContent = "Ventos atuais estimados para pontos de referencia da regiao";
+                refs.statusPainel.textContent = "Direção do vento sobre focos recentes";
+                refs.hintJanela.textContent = "Ventos atuais estimados para pontos de referência da região";
             } else {
                 refs.tituloPainel.textContent = "Áreas de Risco";
-                refs.statusPainel.textContent = "Zonas prioritarias para preservacao e cuidado";
+                refs.statusPainel.textContent = "Zonas prioritárias para preservação e cuidado";
                 refs.hintJanela.textContent = "Camadas territoriais restritas ao Oeste da Bahia";
             }
 
@@ -1716,7 +1717,7 @@
                 return "Zona de risco";
             }
 
-            return camadasAreasRisco[estado.riscoTipo]?.titulo || "Area de risco";
+            return camadasAreasRisco[estado.riscoTipo]?.titulo || "Área de risco";
         }
 
         async function atualizarAreasRiscoOperacional() {
@@ -1751,7 +1752,7 @@
                 ajustarMapa(false);
             } catch (erro) {
                 console.error(erro);
-                status.textContent = "Falha ao carregar areas de risco.";
+                status.textContent = "Falha ao carregar áreas de risco.";
             }
         }
 
@@ -1763,7 +1764,7 @@
             const config = camadasAreasRisco[chave];
             const resposta = await fetch(config.arquivo, { cache: "force-cache" });
             if (!resposta.ok) {
-                throw new Error(`Nao foi possivel carregar ${config.arquivo}.`);
+                throw new Error(`Não foi possível carregar ${config.arquivo}.`);
             }
 
             const dados = await resposta.json();
@@ -1799,9 +1800,9 @@
                     .setContent(`
                         <div class="popup-title">${escaparHtml(config.titulo)}</div>
                         <div class="popup-row"><span>Zona</span><b>Risco operacional</b></div>
-                        <div class="popup-row"><span>Tipo</span><b>${escaparHtml(p.tipo || "Nao informado")}</b></div>
-                        <div class="popup-row"><span>Area</span><b>${escaparHtml(formatarAreaCar(p.area_decla))}</b></div>
-                        <div class="popup-row"><span>Conservacao</span><b>${escaparHtml(p.est_conser || "Nao informada")}</b></div>
+                        <div class="popup-row"><span>Tipo</span><b>${escaparHtml(p.tipo || "Não informado")}</b></div>
+                        <div class="popup-row"><span>Área</span><b>${escaparHtml(formatarAreaCar(p.area_decla))}</b></div>
+                        <div class="popup-row"><span>Conservação</span><b>${escaparHtml(p.est_conser || "Não informada")}</b></div>
                         ${p.status ? `<div class="popup-row"><span>Status</span><b>${escaparHtml(p.status)}</b></div>` : ""}
                     `)
                     .openOn(mapa);
@@ -1833,10 +1834,10 @@
 
         function aplicarRotulosPainel(modo) {
             const areas = modo === "areas";
-            refs.tituloLista.textContent = areas ? "Lista de areas" : "Lista de focos";
-            refs.rotuloTotal.textContent = areas ? "Areas no filtro" : "Focos no periodo";
-            refs.rotuloMunicipiosAfetados.textContent = areas ? "Camadas no filtro" : "Municipios com ocorrencia";
-            refs.rotuloSatelitesAtivos.textContent = areas ? "Criticidade" : "Satelites no filtro";
+            refs.tituloLista.textContent = areas ? "Lista de áreas" : "Lista de focos";
+            refs.rotuloTotal.textContent = areas ? "Áreas no filtro" : "Focos no período";
+            refs.rotuloMunicipiosAfetados.textContent = areas ? "Camadas no filtro" : "Municípios com ocorrência";
+            refs.rotuloSatelitesAtivos.textContent = areas ? "Criticidade" : "Satélites no filtro";
             refs.rotuloUltimoHorario.textContent = areas ? "Status" : "Registro mais recente";
         }
 
@@ -1852,7 +1853,7 @@
             refs.totalMunicipios.textContent = estado.limites?.features?.length || 0;
             refs.satelitesAtivos.textContent = satelites.size;
             refs.ultimoHorario.textContent = datas[0] ? formatarHora(datas[0]) : "--";
-            refs.legendaFocos.textContent = `Focos de Incendio (${features.length})`;
+            refs.legendaFocos.textContent = `Focos de Incêndio (${features.length})`;
             refs.legendaPeriodo.textContent = periodo || "Dados consolidados";
             refs.legendaRiscoClasses.hidden = true;
             refs.legendaRiscoClasses.innerHTML = "";
@@ -1872,7 +1873,7 @@
             refs.satelitesAtivos.textContent = "Alta";
             refs.ultimoHorario.textContent = totalAreas ? "Ativo" : "Carregando";
             refs.legendaFocos.textContent = `${tituloAreaRiscoAtual()}${totalAreas ? ` (${formatarInteiro(totalAreas)})` : ""}`;
-            refs.legendaPeriodo.textContent = "Areas de preservacao priorizadas para cuidado";
+            refs.legendaPeriodo.textContent = "Áreas de preservação priorizadas para cuidado";
             refs.legendaRiscoClasses.hidden = false;
             refs.legendaRiscoClasses.innerHTML = chaves.map((chave) => {
                 const config = camadasAreasRisco[chave];
@@ -1896,7 +1897,7 @@
                     <li class="focus-item">
                         <div class="focus-meta">
                             <div>
-                                <span class="focus-label">Deteccao</span>
+                                <span class="focus-label">Detecção</span>
                                 <span class="focus-value">${escaparHtml(formatarDataHora(p.data_hora))}</span>
                             </div>
                             <div class="focus-temp">
@@ -1906,7 +1907,7 @@
                         </div>
                         <div class="focus-place">
                             <span class="small-red-dot"></span>
-                            <span>${escaparHtml(p.municipio || "Municipio nao informado")} | ${escaparHtml(p.satelite || "Satelite N/A")}</span>
+                            <span>${escaparHtml(p.municipio || "Município não informado")} | ${escaparHtml(p.satelite || "Satélite N/A")}</span>
                         </div>
                     </li>
                 `;
@@ -1919,7 +1920,7 @@
                 const config = camadasAreasRisco[chave];
                 const dados = cacheAreasRisco[chave]?.dados;
                 const total = Number(dados?.metadata?.feicoes || dados?.features?.length || 0);
-                const valor = total ? `${formatarInteiro(total)} areas` : "Carregando";
+                const valor = total ? `${formatarInteiro(total)} áreas` : "Carregando";
 
                 return `
                     <li class="focus-item">
@@ -1968,7 +1969,7 @@
             }
 
             if (!estado.vento.pontos.length) {
-                refs.ventoStatus.textContent = "Sem dados de vento disponiveis.";
+                refs.ventoStatus.textContent = "Sem dados de vento disponíveis.";
                 return;
             }
 
@@ -1982,7 +1983,7 @@
                         iconAnchor: [17, 17]
                     })
                 })
-                    .bindTooltip(`${ponto.nome}: ${formatarNumero(ponto.velocidade)} km/h, inclinacao para ${cardinal(direcaoInclina)}`)
+                    .bindTooltip(`${ponto.nome}: ${formatarNumero(ponto.velocidade)} km/h, inclinação para ${cardinal(direcaoInclina)}`)
                     .addTo(camadaVento);
             }
 
@@ -1999,7 +2000,7 @@
                 estado.vento.pontos = pontos.filter(Boolean);
                 estado.vento.atualizadoEm = new Date();
             } catch (erro) {
-                estado.vento.erro = "Nao foi possivel carregar vento publico agora.";
+                estado.vento.erro = "Não foi possível carregar vento público agora.";
             } finally {
                 estado.vento.carregando = false;
             }
@@ -2141,8 +2142,8 @@
             const satelites = [...new Set(features.map((feature) => feature.properties?.satelite).filter(Boolean))]
                 .sort((a, b) => a.localeCompare(b, "pt-BR"));
 
-            preencherSelect(refs.filtroMunicipio, municipios, "Todos os municipios", normalizar, estado.municipio);
-            preencherSelect(refs.filtroSatelite, satelites, "Todos os satelites", (valor) => valor, estado.satelite);
+            preencherSelect(refs.filtroMunicipio, municipios, "Todos os municípios", normalizar, estado.municipio);
+            preencherSelect(refs.filtroSatelite, satelites, "Todos os satélites", (valor) => valor, estado.satelite);
 
             estado.municipio = refs.filtroMunicipio.value;
             estado.satelite = refs.filtroSatelite.value;
@@ -2192,7 +2193,7 @@
                 properties.nome ||
                 properties.NOME ||
                 properties.municipio ||
-                "Municipio";
+                "Município";
         }
 
         function normalizar(valor) {
@@ -2248,7 +2249,7 @@
 
             const inicio = metadata.period_start.split("-").reverse().join("/");
             const fim = metadata.period_end.split("-").reverse().join("/");
-            return inicio === fim ? `Dados de ${inicio}` : `Periodo ${inicio} ate ${fim}`;
+            return inicio === fim ? `Dados de ${inicio}` : `Período ${inicio} até ${fim}`;
         }
 
         function formatarNumero(valor) {
@@ -2256,6 +2257,18 @@
                 return "N/A";
             }
             return Number(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+        }
+
+        function formatarCoordenadasFoco(feature) {
+            const coordenadas = feature.geometry?.coordinates || [];
+            const lon = Number(coordenadas[0]);
+            const lat = Number(coordenadas[1]);
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                return "Coordenadas não informadas";
+            }
+
+            return `Lat ${lat.toFixed(6)}, Lon ${lon.toFixed(6)}`;
         }
 
         function escaparHtml(valor) {
