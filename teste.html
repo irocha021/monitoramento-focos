@@ -1340,7 +1340,9 @@
                     <div class="popup-title">${escaparHtml(p.municipio || "Município não informado")}</div>
                     <div class="popup-row"><span>Detecção</span><b>${escaparHtml(formatarDataHora(p.data_hora))}</b></div>
                     <div class="popup-row"><span>Coordenadas</span><b>${escaparHtml(formatarCoordenadasFoco(feature))}</b></div>
+                    <div class="popup-row"><span>Fonte</span><b>${escaparHtml(p.fonte || "INPE")}</b></div>
                     <div class="popup-row"><span>Satélite</span><b>${escaparHtml(p.satelite || "N/A")}</b></div>
+                    ${p.confianca ? `<div class="popup-row"><span>Confiança</span><b>${escaparHtml(p.confianca)}</b></div>` : ""}
                     <div class="popup-row"><span>Bioma</span><b>${escaparHtml(p.bioma || "N/A")}</b></div>
                     <div class="popup-row"><span>FRP</span><b>${escaparHtml(formatarNumero(p.frp))}</b></div>
                 `);
@@ -1907,7 +1909,7 @@
                         </div>
                         <div class="focus-place">
                             <span class="small-red-dot"></span>
-                            <span>${escaparHtml(p.municipio || "Município não informado")} | ${escaparHtml(p.satelite || "Satélite N/A")}</span>
+                            <span>${escaparHtml(p.municipio || "Município não informado")} | ${escaparHtml(p.fonte || "INPE")} | ${escaparHtml(p.satelite || "Satélite N/A")}</span>
                         </div>
                     </li>
                 `;
