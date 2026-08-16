@@ -407,6 +407,22 @@
             border: 1px solid rgba(17, 24, 39, 0.18);
         }
 
+        .front-swatch {
+            width: 22px;
+            height: 12px;
+            border: 2px dashed #ef2e2b;
+            border-radius: 999px;
+            background: rgba(249, 115, 22, 0.24);
+        }
+
+        .cone-swatch {
+            width: 0;
+            height: 0;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            border-left: 20px solid rgba(239, 46, 43, 0.5);
+        }
+
         .legend-note {
             margin: 8px 0 0 25px;
             color: var(--muted);
@@ -457,6 +473,58 @@
             border-left: 7px solid transparent;
             border-right: 7px solid transparent;
             border-bottom: 10px solid var(--aiba-blue-dark);
+        }
+
+        .wind-particles-canvas {
+            position: absolute;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            opacity: 0.92;
+        }
+
+        .wind-particle-swatch {
+            position: relative;
+            width: 25px;
+            height: 12px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(12, 77, 130, 0.12);
+        }
+
+        .wind-particle-swatch::before,
+        .wind-particle-swatch::after {
+            content: "";
+            position: absolute;
+            left: 3px;
+            width: 18px;
+            height: 1px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 4px rgba(12, 77, 130, 0.45);
+        }
+
+        .wind-particle-swatch::before {
+            top: 4px;
+        }
+
+        .wind-particle-swatch::after {
+            top: 8px;
+            left: 7px;
+            width: 14px;
+        }
+
+        .fire-front-count {
+            display: grid;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            background: #ef2e2b;
+            box-shadow: 0 8px 18px rgba(239, 46, 43, 0.35);
+            color: #ffffff;
+            font-size: 0.74rem;
+            font-weight: 900;
         }
 
         .municipio-line {
@@ -1043,6 +1111,9 @@
                     <div class="legend-title">Monitoramento Ativo</div>
                     <div class="legend-row"><span class="fire-dot">!</span><span id="legendaFocos">Focos de Incêndio (0)</span></div>
                     <div class="legend-note" id="legendaPeriodo">Dados consolidados</div>
+                    <div class="legend-row" id="legendaFrenteFogo"><span class="front-swatch"></span><span>Frente de fogo agrupada</span></div>
+                    <div class="legend-row" id="legendaParticulasVento"><span class="wind-particle-swatch"></span><span>Partículas de vento observado</span></div>
+                    <div class="legend-row" id="legendaConeVento"><span class="cone-swatch"></span><span>Cone de espalhamento por vento</span></div>
                     <div id="legendaRiscoClasses" hidden></div>
                     <div class="legend-row"><span class="municipio-line"></span><span>Limite municipal</span></div>
                     <div class="legend-row"><span class="unidade-conservacao-line"></span><span>Unidades de conservação (APA)</span></div>
@@ -1182,6 +1253,7 @@
         };
         const ARQUIVO_LIMITES = "limites_municipios_oeste.json";
         const ARQUIVO_UNIDADES_CONSERVACAO = "unidades_conservacao_oeste.geojson";
+        const ARQUIVO_VENTO = "vento_oeste_ba.json";
         const INTERVALO_ATUALIZACAO_MS = 60000;
         const PONTOS_VENTO = [
             { nome: "Barreiras", lat: -12.1528, lon: -44.99 },
@@ -1274,6 +1346,14 @@
             }
         };
         const cacheAreasRisco = {};
+        const DISTANCIA_CLUSTER_FOGO_KM = 8;
+        const MIN_PONTOS_FRENTE_FOGO = 4;
+        const LIMITE_OCULTAR_PONTOS_AGRUPADOS = 80;
+        const LIMITE_CONES_ESPALHAMENTO = 12;
+        const HORAS_CONE_ESPALHAMENTO = 4;
+        const PARTICULAS_VENTO_DESKTOP = 760;
+        const PARTICULAS_VENTO_MOBILE = 340;
+        const VELOCIDADE_PARTICULA_BASE = 0.2;
 
         const camadaUnidadesConservacao = L.geoJSON(null, {
             style: {
@@ -1312,6 +1392,7 @@
             }
         }).addTo(mapa);
 
+        const camadaFrentesFogo = L.featureGroup().addTo(mapa);
         const camadaFocos = L.geoJSON(null, {
             pointToLayer: (feature, latlng) => {
                 if (!estado.usarIcones) {
@@ -1351,6 +1432,14 @@
 
         const camadaVento = L.layerGroup().addTo(mapa);
         const camadaAreasRiscoOperacional = L.layerGroup().addTo(mapa);
+        const particulasVento = {
+            canvas: null,
+            ctx: null,
+            raf: null,
+            itens: [],
+            ultimoFrame: 0,
+            eventosRegistrados: false
+        };
 
         const estado = {
             view: "tempo-real",
@@ -1363,7 +1452,9 @@
             unidadesConservacao: null,
             vento: {
                 pontos: [],
+                alvos: new Map(),
                 carregando: false,
+                carregandoAlvos: false,
                 erro: null
             },
             municipio: "",
@@ -1371,6 +1462,7 @@
             riscoTipo: "zona_risco",
             janela: "hoje",
             usarIcones: true,
+            frentesFogo: [],
             jaAjustouMapa: false
         };
 
@@ -1401,6 +1493,9 @@
             listaOcorrencias: document.getElementById("listaOcorrencias"),
             legendaFocos: document.getElementById("legendaFocos"),
             legendaPeriodo: document.getElementById("legendaPeriodo"),
+            legendaFrenteFogo: document.getElementById("legendaFrenteFogo"),
+            legendaParticulasVento: document.getElementById("legendaParticulasVento"),
+            legendaConeVento: document.getElementById("legendaConeVento"),
             legendaRiscoClasses: document.getElementById("legendaRiscoClasses"),
             painelVento: document.getElementById("painelVento"),
             ventoMedio: document.getElementById("ventoMedio"),
@@ -1644,8 +1739,12 @@
             refs.linhaSatelite.hidden = estado.display !== "satelite" || ehAreasRisco;
             refs.linhaMunicipio.hidden = ehAreasRisco;
             refs.painelVento.hidden = estado.view !== "ventos";
+            refs.legendaFrenteFogo.hidden = ehAreasRisco;
+            refs.legendaParticulasVento.hidden = estado.view !== "ventos";
+            refs.legendaConeVento.hidden = estado.view !== "ventos";
 
             camadaFocos.clearLayers();
+            camadaFrentesFogo.clearLayers();
 
             if (ehAreasRisco) {
                 atualizarAreasRiscoOperacional();
@@ -1654,8 +1753,20 @@
                 atualizarListaAreasRisco();
             } else {
                 camadaAreasRiscoOperacional.clearLayers();
+                let featuresMapa = features;
+                try {
+                    estado.frentesFogo = criarFrentesFogo(features);
+                    featuresMapa = obterFeaturesVisiveisNoMapa(features, estado.frentesFogo);
+                    desenharFrentesFogo(estado.frentesFogo);
+                } catch (erro) {
+                    console.error("Falha ao desenhar frentes de fogo", erro);
+                    estado.frentesFogo = [];
+                    camadaFrentesFogo.clearLayers();
+                }
                 estado.usarIcones = features.length <= 800;
-                camadaFocos.addData({ type: "FeatureCollection", features });
+                camadaFocos.addData({ type: "FeatureCollection", features: featuresMapa });
+                camadaMunicipios.bringToFront();
+                camadaFocos.bringToFront();
                 atualizarResumo(features, metadata);
                 atualizarLista(features);
             }
@@ -1706,6 +1817,233 @@
                 const data = dataLocal(feature.properties?.data_hora);
                 return data && data.getTime() >= limite;
             });
+        }
+
+        function criarFrentesFogo(features) {
+            const pontos = features
+                .map((feature, indice) => {
+                    const coords = feature.geometry?.coordinates || [];
+                    const lon = Number(coords[0]);
+                    const lat = Number(coords[1]);
+                    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                        return null;
+                    }
+                    return { feature, indice, lat, lon };
+                })
+                .filter(Boolean);
+
+            if (pontos.length < MIN_PONTOS_FRENTE_FOGO) {
+                return [];
+            }
+
+            const grupos = agruparPontosProximos(pontos, DISTANCIA_CLUSTER_FOGO_KM);
+            return grupos
+                .filter((grupo) => grupo.length >= MIN_PONTOS_FRENTE_FOGO)
+                .map((grupo) => {
+                    const hull = calcularConvexHull(grupo.map((ponto) => [ponto.lon, ponto.lat]));
+                    if (hull.length < 3) {
+                        return null;
+                    }
+
+                    const centro = centroidePontos(grupo);
+                    const datas = grupo
+                        .map((ponto) => dataLocal(ponto.feature.properties?.data_hora))
+                        .filter(Boolean)
+                        .sort((a, b) => a - b);
+                    const municipios = [...new Set(grupo.map((ponto) => ponto.feature.properties?.municipio).filter(Boolean))]
+                        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+                    return {
+                        pontos: grupo,
+                        indices: new Set(grupo.map((ponto) => ponto.indice)),
+                        hull,
+                        centro,
+                        municipios,
+                        inicio: datas[0] || null,
+                        fim: datas[datas.length - 1] || null,
+                        areaKm2: areaPoligonoKm2(hull)
+                    };
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.pontos.length - a.pontos.length);
+        }
+
+        function obterFeaturesVisiveisNoMapa(features, frentes) {
+            return features;
+        }
+
+        function desenharFrentesFogo(frentes) {
+            camadaFrentesFogo.clearLayers();
+
+            frentes.slice(0, 60).forEach((frente, indice) => {
+                const latLngs = frente.hull.map(([lon, lat]) => [lat, lon]);
+                const municipios = frente.municipios.slice(0, 4).join(", ");
+                const complementoMunicipios = frente.municipios.length > 4 ? ` +${frente.municipios.length - 4}` : "";
+                const periodo = frente.inicio && frente.fim
+                    ? `${formatarDataObjeto(frente.inicio)} até ${formatarDataObjeto(frente.fim)}`
+                    : "Período não informado";
+
+                L.polygon(latLngs, {
+                    color: "#ef2e2b",
+                    weight: 2,
+                    opacity: 0.9,
+                    fillColor: "#f97316",
+                    fillOpacity: 0.2,
+                    dashArray: "8 5"
+                })
+                    .bindPopup(`
+                        <div class="popup-title">Frente de fogo ${indice + 1}</div>
+                        <div class="popup-row"><span>Focos</span><b>${formatarInteiro(frente.pontos.length)}</b></div>
+                        <div class="popup-row"><span>Área</span><b>${escaparHtml(formatarAreaKm2(frente.areaKm2))}</b></div>
+                        <div class="popup-row"><span>Municípios</span><b>${escaparHtml(municipios || "N/A")}${escaparHtml(complementoMunicipios)}</b></div>
+                        <div class="popup-row"><span>Período</span><b>${escaparHtml(periodo)}</b></div>
+                    `)
+                    .addTo(camadaFrentesFogo);
+
+                L.marker([frente.centro.lat, frente.centro.lon], {
+                    icon: L.divIcon({
+                        className: "fire-front-label",
+                        html: `<span class="fire-front-count">${formatarInteiro(frente.pontos.length)}</span>`,
+                        iconSize: [34, 34],
+                        iconAnchor: [17, 17]
+                    })
+                })
+                    .bindTooltip(`Frente de fogo: ${formatarInteiro(frente.pontos.length)} focos`)
+                    .addTo(camadaFrentesFogo);
+            });
+        }
+
+        function agruparPontosProximos(pontos, distanciaKm) {
+            const parent = pontos.map((_, indice) => indice);
+            const cellGraus = distanciaKm / 111.32;
+            const grade = new Map();
+
+            function find(indice) {
+                while (parent[indice] !== indice) {
+                    parent[indice] = parent[parent[indice]];
+                    indice = parent[indice];
+                }
+                return indice;
+            }
+
+            function unir(a, b) {
+                const raizA = find(a);
+                const raizB = find(b);
+                if (raizA !== raizB) {
+                    parent[raizB] = raizA;
+                }
+            }
+
+            pontos.forEach((ponto, indice) => {
+                const gx = Math.floor(ponto.lon / cellGraus);
+                const gy = Math.floor(ponto.lat / cellGraus);
+
+                for (let x = gx - 1; x <= gx + 1; x += 1) {
+                    for (let y = gy - 1; y <= gy + 1; y += 1) {
+                        const candidatos = grade.get(`${x}:${y}`) || [];
+                        candidatos.forEach((outroIndice) => {
+                            const outro = pontos[outroIndice];
+                            if (distanciaKmEntre(ponto.lat, ponto.lon, outro.lat, outro.lon) <= distanciaKm) {
+                                unir(indice, outroIndice);
+                            }
+                        });
+                    }
+                }
+
+                const chave = `${gx}:${gy}`;
+                if (!grade.has(chave)) {
+                    grade.set(chave, []);
+                }
+                grade.get(chave).push(indice);
+            });
+
+            const grupos = new Map();
+            pontos.forEach((ponto, indice) => {
+                const raiz = find(indice);
+                if (!grupos.has(raiz)) {
+                    grupos.set(raiz, []);
+                }
+                grupos.get(raiz).push(ponto);
+            });
+
+            return [...grupos.values()];
+        }
+
+        function distanciaKmEntre(lat1, lon1, lat2, lon2) {
+            const raioTerraKm = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(lat1 * Math.PI / 180) *
+                Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) ** 2;
+
+            return 2 * raioTerraKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function calcularConvexHull(pontos) {
+            const unicos = [...new Map(pontos.map((ponto) => [`${ponto[0]}:${ponto[1]}`, ponto])).values()]
+                .sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
+
+            if (unicos.length <= 3) {
+                return unicos;
+            }
+
+            const cross = (origem, a, b) =>
+                (a[0] - origem[0]) * (b[1] - origem[1]) - (a[1] - origem[1]) * (b[0] - origem[0]);
+            const inferior = [];
+            for (const ponto of unicos) {
+                while (inferior.length >= 2 && cross(inferior[inferior.length - 2], inferior[inferior.length - 1], ponto) <= 0) {
+                    inferior.pop();
+                }
+                inferior.push(ponto);
+            }
+
+            const superior = [];
+            for (let i = unicos.length - 1; i >= 0; i -= 1) {
+                const ponto = unicos[i];
+                while (superior.length >= 2 && cross(superior[superior.length - 2], superior[superior.length - 1], ponto) <= 0) {
+                    superior.pop();
+                }
+                superior.push(ponto);
+            }
+
+            inferior.pop();
+            superior.pop();
+            return inferior.concat(superior);
+        }
+
+        function centroidePontos(pontos) {
+            const total = pontos.length || 1;
+            const soma = pontos.reduce((acc, ponto) => {
+                acc.lat += ponto.lat;
+                acc.lon += ponto.lon;
+                return acc;
+            }, { lat: 0, lon: 0 });
+
+            return {
+                lat: soma.lat / total,
+                lon: soma.lon / total
+            };
+        }
+
+        function areaPoligonoKm2(hull) {
+            if (!hull.length) {
+                return 0;
+            }
+
+            const latMedia = hull.reduce((soma, [, lat]) => soma + lat, 0) / hull.length;
+            const fatorLon = 111.32 * Math.cos(latMedia * Math.PI / 180);
+            const pontosKm = hull.map(([lon, lat]) => [lon * fatorLon, lat * 111.32]);
+            let soma = 0;
+
+            for (let i = 0; i < pontosKm.length; i += 1) {
+                const atual = pontosKm[i];
+                const proximo = pontosKm[(i + 1) % pontosKm.length];
+                soma += atual[0] * proximo[1] - proximo[0] * atual[1];
+            }
+
+            return Math.abs(soma) / 2;
         }
 
         function obterChavesAreasRisco() {
@@ -1951,19 +2289,12 @@
             camadaVento.clearLayers();
 
             if (estado.view !== "ventos") {
-                return;
-            }
-
-            if (!estado.vento.pontos.length && !estado.vento.carregando) {
-                carregarVentos().then(() => atualizarCamadaVento(features));
-            }
-
-            if (estado.vento.carregando) {
-                refs.ventoStatus.textContent = "Carregando dados de vento...";
+                desativarParticulasVento();
                 return;
             }
 
             if (estado.vento.erro) {
+                desativarParticulasVento();
                 refs.ventoStatus.textContent = estado.vento.erro;
                 refs.ventoMedio.textContent = "--";
                 refs.ventoDirecao.textContent = "--";
@@ -1971,7 +2302,14 @@
             }
 
             if (!estado.vento.pontos.length) {
-                refs.ventoStatus.textContent = "Sem dados de vento disponíveis.";
+                if (!estado.vento.carregando) {
+                    carregarVentos().then(() => {
+                        if (estado.view === "ventos") {
+                            atualizarCamadaVento(features);
+                        }
+                    });
+                }
+                refs.ventoStatus.textContent = "Carregando dados de vento...";
                 return;
             }
 
@@ -1989,7 +2327,9 @@
                     .addTo(camadaVento);
             }
 
-            desenharTendenciaFogo(features);
+            const alvosEspalhamento = obterAlvosEspalhamento(features).slice(0, LIMITE_CONES_ESPALHAMENTO);
+            desenharConesEspalhamento(alvosEspalhamento);
+            ativarParticulasVento();
             atualizarResumoVento();
         }
 
@@ -1998,13 +2338,55 @@
             estado.vento.erro = null;
 
             try {
-                const pontos = await Promise.all(PONTOS_VENTO.map(obterVentoPonto));
-                estado.vento.pontos = pontos.filter(Boolean);
+                const pontosArquivo = await carregarVentosServidor();
+                if (pontosArquivo.length) {
+                    estado.vento.pontos = pontosArquivo;
+                } else {
+                    const resultados = await Promise.allSettled(PONTOS_VENTO.map(obterVentoPonto));
+                    estado.vento.pontos = resultados
+                        .filter((resultado) => resultado.status === "fulfilled" && resultado.value)
+                        .map((resultado) => resultado.value);
+                }
+
+                if (!estado.vento.pontos.length) {
+                    throw new Error("Nenhum ponto de vento disponível.");
+                }
+
                 estado.vento.atualizadoEm = new Date();
             } catch (erro) {
                 estado.vento.erro = "Não foi possível carregar vento público agora.";
             } finally {
                 estado.vento.carregando = false;
+            }
+        }
+
+        async function carregarVentosServidor() {
+            try {
+                const resposta = await fetch(`${ARQUIVO_VENTO}?v=${Date.now()}`, { cache: "no-store" });
+                if (!resposta.ok) {
+                    return [];
+                }
+
+                const dados = await resposta.json();
+                return (dados.pontos || [])
+                    .map((ponto) => ({
+                        nome: ponto.nome,
+                        lat: Number(ponto.lat),
+                        lon: Number(ponto.lon),
+                        velocidade: Number(ponto.velocidade),
+                        direcao: Number(ponto.direcao),
+                        horario: ponto.horario
+                    }))
+                    .filter((ponto) =>
+                        ponto.nome &&
+                        Number.isFinite(ponto.lat) &&
+                        Number.isFinite(ponto.lon) &&
+                        Number.isFinite(ponto.velocidade) &&
+                        Number.isFinite(ponto.direcao)
+                    );
+            } catch (erro) {
+                console.warn("Vento local indisponível, tentando API pública.", erro);
+                return [];
             }
         }
 
@@ -2033,38 +2415,304 @@
             return { ...ponto, velocidade, direcao };
         }
 
-        function desenharTendenciaFogo(features) {
-            const focosRecentes = [...features]
-                .sort((a, b) => String(b.properties?.data_hora || "").localeCompare(String(a.properties?.data_hora || "")))
-                .slice(0, 80);
+        function obterAlvosEspalhamento(features) {
+            return estado.frentesFogo.length
+                ? estado.frentesFogo.slice(0, 35).map((frente) => ({
+                    lat: frente.centro.lat,
+                    lon: frente.centro.lon,
+                    titulo: `Frente de fogo com ${formatarInteiro(frente.pontos.length)} focos`,
+                    pontos: frente.pontos.length
+                }))
+                : [...features]
+                    .sort((a, b) => String(b.properties?.data_hora || "").localeCompare(String(a.properties?.data_hora || "")))
+                    .slice(0, 45)
+                    .map((feature) => {
+                        const coords = feature.geometry?.coordinates || [];
+                        return {
+                            lat: Number(coords[1]),
+                            lon: Number(coords[0]),
+                            titulo: feature.properties?.municipio || "Foco de calor",
+                            pontos: 1
+                        };
+                    })
+                    .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lon));
+        }
 
-            for (const feature of focosRecentes) {
-                const coords = feature.geometry?.coordinates;
-                if (!coords || coords.length < 2) {
-                    continue;
-                }
+        async function carregarVentosAlvos(alvos) {
+            const faltantes = alvos
+                .filter((alvo) => !estado.vento.alvos.has(chaveVento(alvo.lat, alvo.lon)))
+                .slice(0, 35);
 
-                const lat = Number(coords[1]);
-                const lon = Number(coords[0]);
-                const vento = ventoMaisProximo(lat, lon);
+            if (!faltantes.length) {
+                return;
+            }
+
+            estado.vento.carregandoAlvos = true;
+            try {
+                const resultados = await Promise.allSettled(
+                    faltantes.map((alvo) => obterVentoPonto({ ...alvo, nome: alvo.titulo }))
+                );
+
+                resultados.forEach((resultado, indice) => {
+                    const alvo = faltantes[indice];
+                    if (resultado.status === "fulfilled" && resultado.value) {
+                        estado.vento.alvos.set(chaveVento(alvo.lat, alvo.lon), resultado.value);
+                    } else {
+                        estado.vento.alvos.set(chaveVento(alvo.lat, alvo.lon), null);
+                    }
+                });
+            } finally {
+                estado.vento.carregandoAlvos = false;
+            }
+        }
+
+        function ventoDoAlvo(alvo) {
+            return estado.vento.alvos.get(chaveVento(alvo.lat, alvo.lon)) || ventoMaisProximo(alvo.lat, alvo.lon);
+        }
+
+        function chaveVento(lat, lon) {
+            return `${Number(lat).toFixed(3)}:${Number(lon).toFixed(3)}`;
+        }
+
+        function desenharConesEspalhamento(alvos) {
+            alvos.forEach((alvo) => {
+                const vento = ventoDoAlvo(alvo);
                 if (!vento) {
-                    continue;
+                    return;
                 }
 
                 const direcaoInclina = normalizarGraus(vento.direcao + 180);
-                const distanciaKm = Math.min(28, Math.max(6, vento.velocidade * 0.9));
-                const destino = destinoPorDirecao(lat, lon, direcaoInclina, distanciaKm);
+                const distanciaKm = Math.min(55, Math.max(8, vento.velocidade * 1.25));
+                const cone = criarCone(alvo.lat, alvo.lon, direcaoInclina, distanciaKm, 22);
+                const destino = destinoPorDirecao(alvo.lat, alvo.lon, direcaoInclina, distanciaKm);
+
+                L.polygon(cone, {
+                    color: "#ef2e2b",
+                    weight: 1.4,
+                    opacity: 0.72,
+                    fillColor: "#ef2e2b",
+                    fillOpacity: 0.18
+                })
+                    .bindPopup(`
+                        <div class="popup-title">Cone de espalhamento</div>
+                        <div class="popup-row"><span>Origem</span><b>${escaparHtml(alvo.titulo)}</b></div>
+                        <div class="popup-row"><span>Vento</span><b>${escaparHtml(formatarNumero(vento.velocidade))} km/h</b></div>
+                        <div class="popup-row"><span>Direção</span><b>${escaparHtml(cardinal(direcaoInclina))}</b></div>
+                        <div class="popup-row"><span>Horizonte</span><b>2 a ${HORAS_CONE_ESPALHAMENTO} horas</b></div>
+                    `)
+                    .addTo(camadaVento);
 
                 L.polyline(
-                    [[lat, lon], [destino.lat, destino.lon]],
+                    [[alvo.lat, alvo.lon], [destino.lat, destino.lon]],
                     {
-                        color: "#f59e0b",
-                        weight: 1.6,
-                        opacity: 0.72,
-                        dashArray: "5 6"
+                        color: "#b91c1c",
+                        weight: 1.8,
+                        opacity: 0.76,
+                        dashArray: "6 7"
                     }
                 ).addTo(camadaVento);
+            });
+        }
+
+        function criarCone(lat, lon, graus, distanciaKm, aberturaGraus) {
+            const esquerda = destinoPorDirecao(lat, lon, normalizarGraus(graus - aberturaGraus), distanciaKm * 0.88);
+            const centro = destinoPorDirecao(lat, lon, graus, distanciaKm);
+            const direita = destinoPorDirecao(lat, lon, normalizarGraus(graus + aberturaGraus), distanciaKm * 0.88);
+            const baseEsquerda = destinoPorDirecao(lat, lon, normalizarGraus(graus - 90), Math.max(0.7, distanciaKm * 0.04));
+            const baseDireita = destinoPorDirecao(lat, lon, normalizarGraus(graus + 90), Math.max(0.7, distanciaKm * 0.04));
+
+            return [
+                [baseEsquerda.lat, baseEsquerda.lon],
+                [esquerda.lat, esquerda.lon],
+                [centro.lat, centro.lon],
+                [direita.lat, direita.lon],
+                [baseDireita.lat, baseDireita.lon]
+            ];
+        }
+
+        function ativarParticulasVento() {
+            if (!estado.vento.pontos.length) {
+                return;
             }
+
+            if (!particulasVento.canvas) {
+                particulasVento.canvas = L.DomUtil.create("canvas", "wind-particles-canvas");
+                particulasVento.ctx = particulasVento.canvas.getContext("2d");
+                mapa.getPanes().overlayPane.appendChild(particulasVento.canvas);
+            }
+
+            particulasVento.canvas.hidden = false;
+            ajustarCanvasParticulasVento(true);
+
+            if (!particulasVento.eventosRegistrados) {
+                mapa.on("moveend zoomend resize", reiniciarParticulasVento);
+                particulasVento.eventosRegistrados = true;
+            }
+
+            if (!particulasVento.raf) {
+                particulasVento.raf = requestAnimationFrame(animarParticulasVento);
+            }
+        }
+
+        function desativarParticulasVento() {
+            if (particulasVento.raf) {
+                cancelAnimationFrame(particulasVento.raf);
+                particulasVento.raf = null;
+            }
+
+            if (particulasVento.ctx && particulasVento.canvas) {
+                particulasVento.ctx.clearRect(0, 0, particulasVento.canvas.width, particulasVento.canvas.height);
+                particulasVento.canvas.hidden = true;
+            }
+        }
+
+        function reiniciarParticulasVento() {
+            if (estado.view !== "ventos" || !particulasVento.canvas) {
+                return;
+            }
+
+            ajustarCanvasParticulasVento(true);
+        }
+
+        function ajustarCanvasParticulasVento(recriar) {
+            const canvas = particulasVento.canvas;
+            if (!canvas) {
+                return;
+            }
+
+            const tamanho = mapa.getSize();
+            const escala = window.devicePixelRatio || 1;
+            const topLeft = mapa.containerPointToLayerPoint([0, 0]);
+            L.DomUtil.setPosition(canvas, topLeft);
+            canvas.style.width = `${tamanho.x}px`;
+            canvas.style.height = `${tamanho.y}px`;
+
+            const largura = Math.max(1, Math.round(tamanho.x * escala));
+            const altura = Math.max(1, Math.round(tamanho.y * escala));
+            if (canvas.width !== largura || canvas.height !== altura) {
+                canvas.width = largura;
+                canvas.height = altura;
+            }
+
+            const ctx = particulasVento.ctx;
+            ctx.setTransform(escala, 0, 0, escala, 0, 0);
+
+            if (recriar || !particulasVento.itens.length) {
+                const total = tamanho.x < 720 ? PARTICULAS_VENTO_MOBILE : PARTICULAS_VENTO_DESKTOP;
+                particulasVento.itens = Array.from({ length: total }, () => criarParticulaVento(tamanho));
+                ctx.clearRect(0, 0, tamanho.x, tamanho.y);
+            }
+        }
+
+        function criarParticulaVento(tamanho) {
+            return {
+                x: Math.random() * tamanho.x,
+                y: Math.random() * tamanho.y,
+                idade: Math.random() * 100,
+                vida: 70 + Math.random() * 110,
+                brilho: 0.42 + Math.random() * 0.46
+            };
+        }
+
+        function animarParticulasVento(timestamp) {
+            particulasVento.raf = null;
+
+            if (estado.view !== "ventos" || !particulasVento.canvas || !estado.vento.pontos.length) {
+                desativarParticulasVento();
+                return;
+            }
+
+            if (timestamp - particulasVento.ultimoFrame < 33) {
+                particulasVento.raf = requestAnimationFrame(animarParticulasVento);
+                return;
+            }
+            particulasVento.ultimoFrame = timestamp;
+
+            const canvas = particulasVento.canvas;
+            const ctx = particulasVento.ctx;
+            const tamanho = mapa.getSize();
+            ctx.globalCompositeOperation = "destination-in";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
+            ctx.fillRect(0, 0, tamanho.x, tamanho.y);
+            ctx.globalCompositeOperation = "source-over";
+            ctx.lineCap = "round";
+            ctx.lineWidth = 1.35;
+
+            for (const particula of particulasVento.itens) {
+                const latlng = mapa.containerPointToLatLng([particula.x, particula.y]);
+                const vento = ventoInterpolado(latlng.lat, latlng.lng);
+                if (!vento) {
+                    reciclarParticulaVento(particula, tamanho);
+                    continue;
+                }
+
+                const direcao = normalizarGraus(vento.direcao);
+                const rad = direcao * Math.PI / 180;
+                const velocidade = VELOCIDADE_PARTICULA_BASE + Math.min(1.75, vento.velocidade / 27);
+                const dx = Math.sin(rad) * velocidade;
+                const dy = -Math.cos(rad) * velocidade;
+                const xAnterior = particula.x;
+                const yAnterior = particula.y;
+
+                particula.x += dx;
+                particula.y += dy;
+                particula.idade += 1;
+
+                const fora = particula.x < -20 || particula.x > tamanho.x + 20 || particula.y < -20 || particula.y > tamanho.y + 20;
+                if (fora || particula.idade > particula.vida) {
+                    reciclarParticulaVento(particula, tamanho);
+                    continue;
+                }
+
+                ctx.strokeStyle = `rgba(255, 255, 255, ${particula.brilho})`;
+                ctx.beginPath();
+                ctx.moveTo(xAnterior, yAnterior);
+                ctx.lineTo(particula.x, particula.y);
+                ctx.stroke();
+            }
+
+            particulasVento.raf = requestAnimationFrame(animarParticulasVento);
+        }
+
+        function reciclarParticulaVento(particula, tamanho) {
+            Object.assign(particula, criarParticulaVento(tamanho));
+        }
+
+        function ventoInterpolado(lat, lon) {
+            if (!estado.vento.pontos.length) {
+                return null;
+            }
+
+            const proximos = estado.vento.pontos
+                .map((ponto) => ({
+                    ponto,
+                    distancia: Math.max(0.08, distanciaKmEntre(lat, lon, ponto.lat, ponto.lon))
+                }))
+                .sort((a, b) => a.distancia - b.distancia)
+                .slice(0, 4);
+
+            let somaPeso = 0;
+            let somaVelocidade = 0;
+            let vx = 0;
+            let vy = 0;
+
+            proximos.forEach(({ ponto, distancia }) => {
+                const peso = 1 / (distancia * distancia);
+                const direcao = normalizarGraus(ponto.direcao + 180) * Math.PI / 180;
+                somaPeso += peso;
+                somaVelocidade += ponto.velocidade * peso;
+                vx += Math.sin(direcao) * peso;
+                vy += -Math.cos(direcao) * peso;
+            });
+
+            if (!somaPeso) {
+                return null;
+            }
+
+            return {
+                velocidade: somaVelocidade / somaPeso,
+                direcao: normalizarGraus((Math.atan2(vx, -vy) * 180) / Math.PI)
+            };
         }
 
         function atualizarResumoVento() {
@@ -2075,7 +2723,7 @@
 
             refs.ventoMedio.textContent = `${formatarNumero(mediaVelocidade)} km/h`;
             refs.ventoDirecao.textContent = cardinal(mediaDirecao);
-            refs.ventoStatus.textContent = `Fonte Open-Meteo | ${estado.vento.pontos.length} pontos`;
+            refs.ventoStatus.textContent = `Fonte Open-Meteo via servidor | ${estado.vento.pontos.length} pontos de referência`;
         }
 
         function ventoMaisProximo(lat, lon) {
@@ -2170,6 +2818,7 @@
 
         function ajustarMapa(forcar) {
             const boundsFocos = camadaFocos.getBounds();
+            const boundsFrentes = camadaFrentesFogo.getBounds();
             const boundsMunicipios = camadaMunicipios.getBounds();
 
             if (!forcar && estado.jaAjustouMapa) {
@@ -2178,6 +2827,12 @@
 
             if (boundsFocos.isValid()) {
                 mapa.fitBounds(boundsFocos.pad(0.25), { maxZoom: 10 });
+                estado.jaAjustouMapa = true;
+                return;
+            }
+
+            if (boundsFrentes.isValid()) {
+                mapa.fitBounds(boundsFrentes.pad(0.25), { maxZoom: 10 });
                 estado.jaAjustouMapa = true;
                 return;
             }
@@ -2235,6 +2890,10 @@
             if (!data) {
                 return "Sem data";
             }
+            return formatarDataObjeto(data);
+        }
+
+        function formatarDataObjeto(data) {
             return data.toLocaleString("pt-BR", {
                 day: "2-digit",
                 month: "2-digit",
@@ -2259,6 +2918,17 @@
                 return "N/A";
             }
             return Number(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+        }
+
+        function formatarAreaKm2(valor) {
+            const numero = Number(valor);
+            if (!Number.isFinite(numero) || numero <= 0) {
+                return "Área não estimada";
+            }
+            if (numero < 1) {
+                return `${(numero * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ha`;
+            }
+            return `${numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} km²`;
         }
 
         function formatarCoordenadasFoco(feature) {

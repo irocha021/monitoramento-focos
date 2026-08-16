@@ -1,1 +1,5 @@
 nasa_firms_map_key.txt
+__pycache__/
+*.pyc
+*.log
+vento_oeste_ba.json
